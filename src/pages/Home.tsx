@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { motion } from 'framer-motion';
 
 import Hero from '../components/Hero';
+import FeaturedProducts from '../components/home/FeaturedProducts';
 
 export default function Home() {
   const [featuredCollections, setFeaturedCollections] = useState<any[]>([]);
@@ -98,18 +99,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CALL TO ACTION */}
-      <section className="bg-black text-white py-24 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
-        <div className="container relative z-10 mx-auto px-4 text-center">
-          <h2 className="text-4xl md:text-5xl font-black mb-8">Enerji Çözümlerinde <span className="text-[#f0c961]">Lider Marka</span></h2>
-          <p className="text-gray-400 max-w-2xl mx-auto mb-12 text-lg">Projeleriniz için en uygun çözümleri sunuyoruz. Kurumsal teklifler ve bayilik fırsatları için bizimle iletişime geçin.</p>
-          <button onClick={() => window.open('https://wa.me/905555555555')} className="inline-flex items-center gap-3 bg-[#f0c961] text-black px-10 py-5 rounded-xl font-bold text-lg hover:bg-white transition-colors">
-            HEMEN TEKLİF AL
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-          </button>
-        </div>
-      </section>
+      <FeaturedProducts />
+
+
     </div>
   );
 }

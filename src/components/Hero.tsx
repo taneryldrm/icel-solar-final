@@ -80,7 +80,7 @@ const Hero: React.FC = () => {
     const slide = slides[currentSlide];
 
     return (
-        <section className="relative h-[600px] md:h-[700px] flex items-center overflow-hidden bg-black">
+        <section className="relative h-[500px] md:h-[700px] flex items-center overflow-hidden bg-gray-900">
             {/* Background Image Iteration for Smooth Transition */}
             <AnimatePresence mode='wait'>
                 <motion.div
@@ -91,7 +91,7 @@ const Hero: React.FC = () => {
                     transition={{ duration: 1 }}
                     className="absolute inset-0 z-0"
                 >
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent z-10" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent z-10" />
                     <img
                         src={slide.image_url}
                         alt={slide.title}
@@ -112,37 +112,37 @@ const Hero: React.FC = () => {
                         className="max-w-3xl text-white text-center md:text-left mx-auto md:mx-0"
                     >
                         {slide.subtitle && (
-                            <div className="flex items-center justify-center md:justify-start gap-4 mb-4 md:mb-6">
+                            <div className="flex items-center justify-center md:justify-start gap-3 md:gap-4 mb-3 md:mb-6">
                                 <span className="h-[2px] w-8 md:w-12 bg-[#f0c961]" />
-                                <span className="text-[#f0c961] font-bold tracking-[0.3em] text-xs md:text-sm uppercase">{slide.subtitle}</span>
+                                <span className="text-[#f0c961] font-bold tracking-[0.2em] md:tracking-[0.3em] text-[10px] md:text-sm uppercase">{slide.subtitle}</span>
                             </div>
                         )}
 
-                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black leading-tight mb-6 font-sans tracking-tight">
+                        <h1 className="text-3xl md:text-6xl lg:text-7xl font-black leading-tight mb-4 md:mb-6 font-sans tracking-tight">
                             {slide.title}
                         </h1>
 
                         {slide.description && (
-                            <p className="text-lg md:text-xl text-gray-200 mb-8 md:mb-10 max-w-xl mx-auto md:mx-0 font-light leading-relaxed">
+                            <p className="text-base md:text-xl text-gray-200 mb-6 md:mb-10 max-w-xl mx-auto md:mx-0 font-light leading-relaxed">
                                 {slide.description}
                             </p>
                         )}
 
-                        <div className="flex flex-col md:flex-row flex-wrap gap-4 justify-center md:justify-start">
+                        <div className="flex flex-col md:flex-row flex-wrap gap-3 md:gap-4 justify-center md:justify-start">
                             {slide.target_link && (
                                 <Link
                                     to={slide.target_link}
-                                    className="group relative px-8 py-4 bg-[#f0c961] text-black font-bold uppercase tracking-wider overflow-hidden rounded-lg shadow-[0_0_20px_rgba(240,201,97,0.4)]"
+                                    className="group relative px-6 py-3 md:px-8 md:py-4 bg-[#f0c961] text-black font-bold uppercase tracking-wider overflow-hidden rounded-lg shadow-[0_0_20px_rgba(240,201,97,0.4)] text-sm md:text-base"
                                 >
                                     <div className="absolute inset-0 w-full h-full bg-white/30 skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                                     <span className="relative flex items-center justify-center gap-2">
                                         {slide.button_text || 'Hemen İncele'}
-                                        <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                                        <svg className="w-3 h-3 md:w-4 md:h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                                     </span>
                                 </Link>
                             )}
-                            {/* Static Contact Button (Optional - could also be dynamic later) */}
-                            <button onClick={() => window.open('https://wa.me/905555555555')} className="px-8 py-4 border border-white/30 text-white font-bold uppercase tracking-wider rounded-lg hover:bg-white/10 backdrop-blur-sm transition-all">
+                            {/* Static Contact Button */}
+                            <button onClick={() => window.open('https://wa.me/905387677071')} className="px-6 py-3 md:px-8 md:py-4 border border-white/30 text-white font-bold uppercase tracking-wider rounded-lg hover:bg-white/10 backdrop-blur-sm transition-all text-sm md:text-base">
                                 Bize Ulaşın
                             </button>
                         </div>

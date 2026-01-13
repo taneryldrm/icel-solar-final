@@ -1,71 +1,82 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Mail, Phone, MapPin } from 'lucide-react';
 
-export default function Footer() {
+const Footer: React.FC = () => {
     return (
-        <footer className="bg-[#1a1a1a] text-white pt-16 md:pt-20 pb-10 border-t-4 border-[#f0c961]">
-            <div className="container mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 mb-12 border-b border-gray-800 pb-12 text-center sm:text-left">
-
-                {/* 1. Marka & Hakkında (Eski Yerinde) */}
-                <div className="col-span-1 sm:col-span-2 lg:col-span-1">
-                    <div className="text-2xl font-black italic mb-6 text-white tracking-tighter">
-                        <span className="text-[#f0c961]">İÇEL</span> SOLAR MARKET
+        <footer className="bg-[#1a1a1a] text-white">
+            <div className="container mx-auto px-4 py-12">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    {/* Logo & Description */}
+                    <div>
+                        <h3 className="text-2xl font-bold text-[#f0c961] mb-4">ICEL SOLAR MARKET</h3>
+                        <p className="text-gray-400 text-sm leading-relaxed">
+                            Güneş enerjisi sistemleri ve enerji çözümlerinde güvenilir adresiniz.
+                        </p>
                     </div>
-                    <p className="text-gray-400 text-sm leading-relaxed max-w-sm mx-auto sm:mx-0">
-                        Türkiye'nin enerji ve aydınlatma alanındaki lider markası. Yenilikçi çözümler, sürdürülebilir gelecek.
-                    </p>
+
+                    {/* Quick Links */}
+                    <div>
+                        <h4 className="text-lg font-bold mb-4">Hızlı Linkler</h4>
+                        <ul className="space-y-2 text-sm">
+                            <li><Link to="/products" className="text-gray-400 hover:text-[#f0c961] transition-colors">Ürünler</Link></li>
+                            <li><Link to="/hakkimizda" className="text-gray-400 hover:text-[#f0c961] transition-colors">Hakkımızda</Link></li>
+                            <li><Link to="/iletisim" className="text-gray-400 hover:text-[#f0c961] transition-colors">İletişim</Link></li>
+                            <li><Link to="/bayi-basvuru" className="text-gray-400 hover:text-[#f0c961] transition-colors">Bayilik Başvurusu</Link></li>
+                        </ul>
+                    </div>
+
+                    {/* Legal */}
+                    <div>
+                        <h4 className="text-lg font-bold mb-4">Kurumsal</h4>
+                        <ul className="space-y-2 text-sm">
+                            <li><Link to="/kurumsal/gizlilik-politikasi" className="text-gray-400 hover:text-[#f0c961] transition-colors">Gizlilik Politikası</Link></li>
+                            <li><Link to="/kurumsal/kullanim-kosullari" className="text-gray-400 hover:text-[#f0c961] transition-colors">Kullanım Koşulları</Link></li>
+                            <li><Link to="/kurumsal/iptal-iade" className="text-gray-400 hover:text-[#f0c961] transition-colors">İptal ve İade</Link></li>
+                            <li><Link to="/kurumsal/mesafeli-satis-sozlesmesi" className="text-gray-400 hover:text-[#f0c961] transition-colors">Mesafeli Satış Sözleşmesi</Link></li>
+                            <li><Link to="/kurumsal/kvkk-aydinlatma-metni" className="text-gray-400 hover:text-[#f0c961] transition-colors">KVKK Aydınlatma Metni</Link></li>
+                        </ul>
+                    </div>
+
+                    {/* Contact */}
+                    <div>
+                        <h4 className="text-lg font-bold mb-4">İletişim</h4>
+                        <ul className="space-y-3 text-sm text-gray-400">
+                            <li className="flex items-start gap-2">
+                                <Phone className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                <div className="flex flex-col">
+                                    <span>0538 767 70 71</span>
+                                    <span>0324 336 63 36</span>
+                                </div>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                <span>info@icelsolarmarket.com</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                <a
+                                    href="https://maps.app.goo.gl/s3YtjXsFTfuLDjRg9?g_st=ic"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:text-[#f0c961] transition-colors"
+                                >
+                                    Barış, Bahçeler Cd. Eroğlu Plaza No:30/21, 33010 Akdeniz/Mersin
+                                </a>
+                            </li>
+                        </ul>
+
+
+                    </div>
                 </div>
 
-                {/* 2. Kurumsal Linkler (Güncellendi ve Başa Alındı - Mantıklı Gruplama) */}
-                <div>
-                    <h4 className="font-bold text-white mb-6 uppercase text-sm tracking-widest text-[#f0c961]">Kurumsal</h4>
-                    <ul className="space-y-3 text-sm text-gray-400">
-                        <li><a href="#" className="hover:text-white transition-colors">Hakkımızda</a></li>
-                        <li><a href="#" className="hover:text-white transition-colors">Kariyer</a></li>
-                        <li><a href="#" className="hover:text-white transition-colors">Sertifikalarımız</a></li>
-                        <li><Link to="/bayi-basvuru" className="hover:text-white transition-colors font-bold text-[#f0c961]">Bayilik Başvurusu</Link></li>
-                    </ul>
-                </div>
-
-                {/* 3. KOŞUL VE POLİTİKALAR (YENİ SÜTUN) */}
-                <div>
-                    <h4 className="font-bold text-white mb-6 uppercase text-sm tracking-widest text-[#f0c961]">Koşul ve Politikalar</h4>
-                    <ul className="space-y-3 text-sm text-gray-400">
-                        <li><Link to="/kurumsal/cerez-politikasi" className="hover:text-white transition-colors">Çerez Politikası</Link></li>
-                        <li><Link to="/kurumsal/kvkk-aydinlatma-metni" className="hover:text-white transition-colors">KVKK Aydınlatma Metni</Link></li>
-                        <li><Link to="/kurumsal/mesafeli-satis-sozlesmesi" className="hover:text-white transition-colors">Mesafeli Satış Sözleşmesi</Link></li>
-                        <li><Link to="/kurumsal/iptal-iade-kosullari" className="hover:text-white transition-colors">İptal ve İade Koşulları</Link></li>
-                        <li><Link to="/kurumsal/veri-sahibi-basvuru-formu" className="hover:text-white transition-colors">Veri Sahibi Başvuru Formu</Link></li>
-                    </ul>
-                </div>
-
-                {/* 4. İletişim (Sona Kaydı) */}
-                <div>
-                    <h4 className="font-bold text-white mb-6 uppercase text-sm tracking-widest text-[#f0c961]">İletişim</h4>
-                    <ul className="space-y-3 text-sm text-gray-400">
-                        <li className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3">
-                            <span className="text-[#f0c961]">📍</span>
-                            <span>Merkez Mah. Güneşli Yolu Cad.<br />No: 15 Bağcılar / İstanbul</span>
-                        </li>
-                        <li className="flex items-center justify-center sm:justify-start gap-3">
-                            <span className="text-[#f0c961]">📞</span>
-                            <span className="text-white font-bold text-lg">+90 212 444 0 123</span>
-                        </li>
-                        <li className="flex items-center justify-center sm:justify-start gap-3">
-                            <span className="text-[#f0c961]">✉️</span>
-                            <span>info@icelsolarmarket.com</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <div className="container mx-auto px-4 text-gray-600 text-xs flex flex-col md:flex-row justify-between items-center gap-4">
-                <p className="text-center md:text-left">&copy; 2025 İçel Solar Market E-Ticaret Sistemleri.</p>
-                <div className="flex gap-4">
-                    {/* Alt kısımdaki tekrarlı linkleri kaldırabiliriz veya tutabiliriz, üstte zaten var. Kullanım şartları vb. üstte var artık. Burayı sadeleştirelim. */}
-                    <span className="opacity-50">Tüm hakları saklıdır.</span>
+                {/* Copyright */}
+                <div className="border-t border-white/10 mt-8 pt-6 text-center text-sm text-gray-500">
+                    © {new Date().getFullYear()} Icel Solar Market. Tüm hakları saklıdır.
                 </div>
             </div>
         </footer>
     );
-}
+};
+
+export default Footer;

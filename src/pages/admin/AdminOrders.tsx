@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { Link } from 'react-router-dom';
+import { formatOrderStatus, formatDate, formatCurrency } from '../../utils/formatters';
 
 interface Order {
     id: string;
@@ -57,17 +58,6 @@ const AdminOrders: React.FC = () => {
         fetchOrders();
     }, []);
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'pending': return <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full border border-yellow-200">Beklemede</span>;
-            case 'approved': return <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full border border-blue-200">Onaylandı</span>;
-            case 'shipped': return <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full border border-purple-200">Kargolandı</span>;
-            case 'delivered': return <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full border border-green-200">Teslim Edildi</span>;
-            case 'cancelled': return <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full border border-red-200">İptal</span>;
-            default: return <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full border border-gray-200">{status}</span>;
-        }
-    };
-
     if (loading) return <div className="p-8 text-center text-gray-500">Siparişler yükleniyor...</div>;
 
     return (
@@ -98,27 +88,33 @@ const AdminOrders: React.FC = () => {
                             ) : (
                                 orders.map((order) => (
                                     <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="p-4 font-mono font-medium text-gray-900">{order.order_no}</td>
-                                        <td className="p-4 text-gray-600">{order.profiles?.email || 'Silinmiş Kullanıcı'}</td>
-                                        <td className="p-4">
+                                        <td className="p-4 py-4 font-mono font-medium text-gray-900">{order.order_no}</td>
+                                        <td className="p-4 py-4 text-gray-600">{order.profiles?.email || 'Silinmiş Kullanıcı'}</td>
+                                        <td className="p-4 py-4">
                                             <span className={`text-[10px] px-2 py-0.5 rounded border uppercase ${order.profiles?.role === 'b2b' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
                                                 {order.profiles?.role || '-'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-gray-500 text-xs">
-                                            {new Date(order.created_at).toLocaleDateString('tr-TR')} <br />
-                                            {new Date(order.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                        <td className="p-4 text-gray-500 text-sm">
+                                            {formatDate(order.created_at)}
                                         </td>
                                         <td className="p-4 text-center">
-                                            {getStatusBadge(order.status)}
+                                            {(() => {
+                                                const { label, color } = formatOrderStatus(order.status);
+                                                return (
+                                                    <span className={`text-xs px-3 py-1 rounded-full border whitespace-nowrap ${color}`}>
+                                                        {label}
+                                                    </span>
+                                                );
+                                            })()}
                                         </td>
-                                        <td className="p-4 text-right font-bold text-gray-900">
-                                            {order.grand_total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                                        <td className="p-4 py-4 text-right font-bold text-gray-900">
+                                            {formatCurrency(order.grand_total)}
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="p-4 py-4 text-center">
                                             <Link
                                                 to={`/admin/orders/${order.id}`}
-                                                className="inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
+                                                className="inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-yellow-700 bg-yellow-50 hover:bg-yellow-100 transition-colors"
                                             >
                                                 Detay
                                             </Link>

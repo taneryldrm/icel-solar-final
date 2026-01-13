@@ -22,6 +22,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, ed
     const [brand, setBrand] = useState('');
     const [description, setDescription] = useState('');
     const [isActive, setIsActive] = useState(true);
+    const [isFeatured, setIsFeatured] = useState(false);
 
     const [categories, setCategories] = useState<Category[]>([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -41,6 +42,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, ed
                 setBrand(editProduct.brand || '');
                 setDescription(editProduct.description || '');
                 setIsActive(editProduct.is_active);
+                setIsFeatured(editProduct.is_featured || false);
                 // Directly set category_id from product
                 setSelectedCategoryId(editProduct.category_id || null);
                 fetchProductImages(editProduct.id);
@@ -51,6 +53,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, ed
                 setBrand('');
                 setDescription('');
                 setIsActive(true);
+                setIsFeatured(false);
                 setSelectedCategoryId(null);
                 setImages([]);
                 setDeletedImageIds([]);
@@ -128,6 +131,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, ed
                 brand,
                 description,
                 is_active: isActive,
+                is_featured: isFeatured,
                 category_id: selectedCategoryId // Save directly to product table
             };
 
@@ -237,16 +241,24 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, ed
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl my-8">
-                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center rounded-t-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl my-8 relative flex flex-col max-h-[90vh]">
+                {/* Fixed Close Button */}
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 z-50 p-2 text-gray-500 hover:text-red-600 bg-white rounded-full shadow-sm cursor-pointer border border-gray-100"
+                >
+                    <span className="sr-only">Kapat</span>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+
+                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center rounded-t-xl flex-shrink-0">
                     <h3 className="font-semibold text-gray-900 text-lg">
                         {editProduct ? 'Ürünü Düzenle' : 'Yeni Ürün Ekle'}
                     </h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-500 text-2xl leading-none">&times;</button>
                 </div>
 
-                <div className="p-6">
+                <div className="p-6 overflow-y-auto custom-scrollbar">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* LEFT COLUMN: Basic Info */}
                         <div className="space-y-4">
@@ -296,6 +308,21 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, ed
                                     />
                                 </div>
                                 <label htmlFor="is_active" className="text-sm font-medium text-gray-700 select-none">Ürün Aktif</label>
+                            </div>
+
+                            <div className="flex items-center gap-3 pt-2">
+                                <div className="flex items-center h-5">
+                                    <input
+                                        id="is_featured"
+                                        type="checkbox"
+                                        className="w-4 h-4 text-[#f0c961] border-gray-300 rounded focus:ring-[#f0c961]"
+                                        checked={isFeatured}
+                                        onChange={e => setIsFeatured(e.target.checked)}
+                                    />
+                                </div>
+                                <label htmlFor="is_featured" className="text-sm font-medium text-gray-700 select-none flex items-center gap-2">
+                                    Vitrin Ürünü (Ana Sayfada Göster) <span className="text-yellow-500">⭐</span>
+                                </label>
                             </div>
                         </div>
 

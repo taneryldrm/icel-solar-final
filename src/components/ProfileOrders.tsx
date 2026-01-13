@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { ChevronDown, ChevronUp, Package, Clock, CheckCircle, XCircle, Truck } from 'lucide-react';
+import { formatOrderStatus, formatDate, formatCurrency } from '../utils/formatters';
 
 interface ProfileOrdersProps {
     userId: string;
@@ -73,32 +74,13 @@ const ProfileOrders: React.FC<ProfileOrdersProps> = ({ userId }) => {
         setExpandedOrder(expandedOrder === orderId ? null : orderId);
     };
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'pending': return 'text-orange-600 bg-orange-50 border-orange-100';
-            case 'processing': return 'text-blue-600 bg-blue-50 border-blue-100';
-            case 'shipped': return 'text-purple-600 bg-purple-50 border-purple-100';
-            case 'delivered': return 'text-green-600 bg-green-50 border-green-100';
-            case 'cancelled': return 'text-red-600 bg-red-50 border-red-100';
-            default: return 'text-gray-600 bg-gray-50 border-gray-100';
-        }
-    };
-
-    const getStatusText = (status: string) => {
-        switch (status) {
-            case 'pending': return 'Bekleniyor';
-            case 'processing': return 'Hazırlanıyor';
-            case 'shipped': return 'Kargoda';
-            case 'delivered': return 'Teslim Edildi';
-            case 'cancelled': return 'İptal Edildi';
-            default: return status;
-        }
-    };
-
     const getStatusIcon = (status: string) => {
         switch (status) {
-            case 'pending': return <Clock className="w-4 h-4" />;
-            case 'processing': return <Package className="w-4 h-4" />;
+            case 'pending':
+            case 'pending_payment': return <Clock className="w-4 h-4" />;
+            case 'processing':
+            case 'processed':
+            case 'approved': return <Package className="w-4 h-4" />;
             case 'shipped': return <Truck className="w-4 h-4" />;
             case 'delivered': return <CheckCircle className="w-4 h-4" />;
             case 'cancelled': return <XCircle className="w-4 h-4" />;
@@ -134,7 +116,7 @@ const ProfileOrders: React.FC<ProfileOrdersProps> = ({ userId }) => {
                             <div>
                                 <div className="text-xs text-gray-500 uppercase font-bold mb-1">Sipariş Tarihi</div>
                                 <div className="font-medium text-gray-900">
-                                    {new Date(order.created_at).toLocaleDateString('tr-TR')}
+                                    {formatDate(order.created_at)}
                                 </div>
                             </div>
                             <div>
@@ -144,15 +126,15 @@ const ProfileOrders: React.FC<ProfileOrdersProps> = ({ userId }) => {
                             <div>
                                 <div className="text-xs text-gray-500 uppercase font-bold mb-1">Tutar</div>
                                 <div className="font-bold text-[#1a1a1a]">
-                                    {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(order.grand_total)}
+                                    {formatCurrency(order.grand_total)}
                                 </div>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
-                            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-bold ${getStatusColor(order.status)}`}>
+                            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-bold ${formatOrderStatus(order.status).color}`}>
                                 {getStatusIcon(order.status)}
-                                <span>{getStatusText(order.status)}</span>
+                                <span>{formatOrderStatus(order.status).label}</span>
                             </div>
                             <button className="text-gray-400 hover:text-gray-600 transition-colors">
                                 {expandedOrder === order.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -182,7 +164,7 @@ const ProfileOrders: React.FC<ProfileOrdersProps> = ({ userId }) => {
                                         </div>
                                         <div className="text-right">
                                             <div className="font-bold text-gray-900">
-                                                {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.line_total || item.unit_price)}
+                                                {formatCurrency(item.line_total || item.unit_price)}
                                             </div>
                                             <div className="text-xs text-gray-500">x {item.quantity} Adet</div>
                                         </div>

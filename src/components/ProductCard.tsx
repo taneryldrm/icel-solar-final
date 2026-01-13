@@ -25,6 +25,7 @@ export interface Product {
     slug: string;
     product_images?: ProductImage[];
     product_variants?: ProductVariant[];
+    is_featured?: boolean;
 }
 
 interface ProductCardProps {
@@ -72,19 +73,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
         setAdding(true);
         try {
+            // Check if user is logged in (optional now!)
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                // If not logged in, maybe redirect to login or show alert
-                // For now, simpler approach:
-                if (window.confirm('Sepete eklemek için giriş yapmalısınız. Giriş sayfasına gitmek ister misiniz?')) {
-                    navigate('/login');
-                }
-                return;
-            }
+            const userId = session?.user?.id; // undefined if not logged in
 
-            const userId = session.user.id;
-
-            // 1. Get/Create Cart (Helpers ile Reliable)
+            // 1. Get/Create Cart (works for both users and guests)
             const cartId = await getOrCreateActiveCart(userId);
 
             if (!cartId) {
@@ -138,10 +131,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                         <img
                             src={displayImage}
                             alt={product.name}
-                            className="w-full h-full object-contain transform group-hover:scale-105 transition-transform duration-500"
+                            className={`w-full h-full object-contain transform group-hover:scale-105 transition-transform duration-500 ${variants.length > 0 && variants[0].stock <= 0 && variants.length === 1 ? 'opacity-50 grayscale' : ''}`}
                         />
                     ) : (
                         <span className="text-4xl">📦</span>
+                    )}
+
+                    {/* Stock Badge */}
+                    {variants.length > 0 && variants[0].stock <= 0 && variants.length === 1 && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                            <div className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg transform -rotate-12 uppercase tracking-widest border-2 border-white">
+                                Tükendi
+                            </div>
+                        </div>
                     )}
 
                     {/* Badge checks (optional, simplistic) */}
@@ -170,10 +172,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <div className="mt-auto">
                 <button
                     onClick={handleAddToCart}
-                    disabled={adding}
-                    className="w-full bg-[#6D4C41] text-white font-bold py-3 text-sm tracking-wider hover:bg-[#5D4037] transition-colors disabled:opacity-70 disabled:cursor-not-allowed rounded-b-xl"
+                    disabled={adding || (variants.length === 1 && variants[0].stock <= 0)}
+                    className="w-full bg-[#6D4C41] text-white font-bold py-3 text-sm tracking-wider hover:bg-[#5D4037] transition-colors disabled:opacity-70 disabled:cursor-not-allowed rounded-b-xl disabled:bg-gray-400"
                 >
-                    {adding ? 'EKLENİYOR...' : 'SEPETE EKLE'}
+                    {adding ? 'EKLENİYOR...' : (variants.length === 1 && variants[0].stock <= 0 ? 'TÜKENDİ' : 'SEPETE EKLE')}
                 </button>
             </div>
         </div>

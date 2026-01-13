@@ -418,11 +418,11 @@ const ProductDetail: React.FC = () => {
                                 className={`
                                     w-full py-4 px-6 rounded-xl font-black uppercase tracking-widest transition-all transform active:scale-95 flex items-center justify-center gap-3 shadow-lg
                                     ${!selectedVariant
-                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none'
                                         : 'bg-[#1a1a1a] text-[#f0c961] hover:bg-[#333] hover:shadow-xl hover:-translate-y-1'}
                                 `}
                             >
-                                {addingToCart ? 'EKLENİYOR...' : 'SEPETE EKLE'}
+                                {addingToCart ? 'EKLENİYOR...' : ((selectedVariant?.stock || 0) <= 0 ? 'TÜKENDİ' : 'SEPETE EKLE')}
                             </button>
 
                             {cartMessage && (

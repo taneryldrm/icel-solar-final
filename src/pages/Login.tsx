@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { mergeGuestCartToUser } from '../lib/cart';
 import { Mail } from 'lucide-react';
 
 const Login: React.FC = () => {
@@ -35,6 +36,8 @@ const Login: React.FC = () => {
 
             if (error) throw error;
             if (data.user) {
+                // Merge guest cart to user cart (if exists)
+                await mergeGuestCartToUser(data.user.id);
                 navigate('/admin');
             }
         } catch (err: any) {
@@ -198,6 +201,14 @@ const Login: React.FC = () => {
                                 )}
                             </button>
                         </div>
+                        {/* Forgot Password Link */}
+                        {!isRegisterView && (
+                            <div className="flex justify-end pt-1">
+                                <Link to="/forgot-password" className="text-xs font-medium text-[#6D4C41] hover:underline">
+                                    Şifremi Unuttum?
+                                </Link>
+                            </div>
+                        )}
                     </div>
 
                     {/* CHECKBOXES (Register Only) */}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { Link } from 'react-router-dom';
+import PriceListWizard from '../../components/admin/PriceListWizard';
 
 interface PriceList {
     id: number;
@@ -13,36 +14,43 @@ interface PriceList {
 const AdminPriceLists: React.FC = () => {
     const [priceLists, setPriceLists] = useState<PriceList[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    const [isWizardOpen, setIsWizardOpen] = useState(false);
 
     useEffect(() => {
-        const fetchPriceLists = async () => {
-            setLoading(true);
-            try {
-                const { data, error } = await supabase
-                    .from('price_lists')
-                    .select('*')
-                    .order('id');
-
-                if (error) throw error;
-                setPriceLists(data || []);
-            } catch (error) {
-                console.error("Error fetching price lists:", error);
-                alert("Fiyat listeleri yüklenirken bir hata oluştu.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchPriceLists();
     }, []);
 
-    if (loading) return <div className="p-8 text-center text-gray-500">Yükleniyor...</div>;
+    const fetchPriceLists = async () => {
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('price_lists')
+                .select('*')
+                .order('id');
+
+            if (error) throw error;
+            setPriceLists(data || []);
+        } catch (error) {
+            console.error("Error fetching price lists:", error);
+            alert("Fiyat listeleri yüklenirken bir hata oluştu.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading && priceLists.length === 0) return <div className="p-8 text-center text-gray-500">Yükleniyor...</div>;
 
     return (
         <div className="min-h-screen bg-gray-50 p-8">
             <div className="max-w-[95%] mx-auto">
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold text-gray-900">Fiyat Listeleri</h1>
+                    <button
+                        onClick={() => setIsWizardOpen(true)}
+                        className="bg-[#f0c961] hover:bg-[#e0b850] text-black font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors"
+                    >
+                        + Yeni Liste Oluştur
+                    </button>
                 </div>
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -65,8 +73,8 @@ const AdminPriceLists: React.FC = () => {
                                     <td className="p-4 text-gray-600">{pl.currency}</td>
                                     <td className="p-4 text-center">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${(pl.type || '') === 'b2b'
-                                                ? 'bg-purple-100 text-purple-800 border-purple-200'
-                                                : 'bg-blue-100 text-blue-800 border-blue-200'
+                                            ? 'bg-purple-100 text-purple-800 border-purple-200'
+                                            : 'bg-yellow-100 text-yellow-800 border-yellow-200'
                                             }`}>
                                             {(pl.type || '?').toUpperCase()}
                                         </span>
@@ -88,6 +96,12 @@ const AdminPriceLists: React.FC = () => {
                     </table>
                 </div>
             </div>
+
+            <PriceListWizard
+                isOpen={isWizardOpen}
+                onClose={() => setIsWizardOpen(false)}
+                onSave={fetchPriceLists}
+            />
         </div>
     );
 };

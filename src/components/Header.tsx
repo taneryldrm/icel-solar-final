@@ -17,7 +17,7 @@ export default function Header() {
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [showDropdown, setShowDropdown] = useState(false);
     const [searchLoading, setSearchLoading] = useState(false);
-    const [showAnnouncement, setShowAnnouncement] = useState(true);
+
     const searchRef = React.useRef<HTMLDivElement>(null);
 
     // Close dropdown on outside click
@@ -161,67 +161,49 @@ export default function Header() {
 
     return (
         <>
-            {/* 1. ANNOUNCEMENT BAR */}
-            {showAnnouncement && (
-                <div className="bg-[#d1e3f0] text-black text-[11px] md:text-xs font-bold py-2 relative z-[60]">
-                    <div className="container mx-auto px-4 flex justify-center items-center text-center">
-                        <span>TEBRİKLER! ALIŞVERİŞİNİZDE KARGO ÜCRETSİZ!</span>
-                        <button
-                            onClick={() => setShowAnnouncement(false)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 opacity-60 hover:opacity-100 transition-opacity"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-            )}
+
 
             {/* 2. MAIN NAVBAR CONTAINER */}
             <header className="bg-[#fffcf7] border-b border-gray-100 sticky top-0 z-[50] shadow-sm transition-all duration-300">
-                <div className="container mx-auto px-4 py-3">
+                <div className="container mx-auto px-4 py-2 md:py-3">
 
                     {/* ROW 1: Navigation & Logos */}
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center gap-2">
                         {/* Left: Hamburger Menu */}
-                        <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-1 -ml-1 text-gray-800">
-                            <Menu className="w-7 h-7" strokeWidth={2.5} />
+                        <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-1 text-gray-800 shrink-0">
+                            <Menu className="w-6 h-6" strokeWidth={2.5} />
                         </button>
 
                         {/* Center: Logo */}
-                        <div className="flex flex-col items-center justify-center text-center absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0 md:flex-row md:gap-8">
+                        <div className="flex flex-col items-center justify-center text-center md:static md:flex-row md:gap-8 flex-1 md:flex-none">
                             <Link to="/" className="group flex flex-col items-center hover:scale-105 transition-transform duration-300">
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-xl md:text-2xl font-black text-[#f0c961] italic tracking-tighter drop-shadow-sm select-none">İÇEL</span>
-                                    <span className="text-xl md:text-2xl font-black text-[#222] italic tracking-tighter select-none">SOLAR MARKET</span>
+                                    <span className="text-lg md:text-2xl font-black text-[#f0c961] italic tracking-tighter drop-shadow-sm select-none">İÇEL</span>
+                                    <span className="text-lg md:text-2xl font-black text-[#222] italic tracking-tighter select-none">SOLAR</span>
                                 </div>
                             </Link>
 
-                            {/* Desktop Menu (Integrated here for layout/spacing reasons on desktop, hidden on mobile) */}
-                            <div className="hidden md:flex items-center gap-8 ml-8">
-                                {/* Desktop menu items could go here if we merge rows, but keeping separate based on original design is fine too. 
-                     For now, keeping the Desktop Menu separate below like before to avoid cluttering the logo area too much, 
-                     or we can put it here. Let's stick to the requested Mobile Design first. 
-                 */}
-                            </div>
+                            {/* Desktop Menu Placeholder */}
+                            <div className="hidden md:flex items-center gap-8 ml-8"></div>
                         </div>
 
                         {/* Right: Icons Group */}
-                        <div className="flex items-center gap-3 md:gap-5">
-                            {/* Heart (Hidden on small mobile if needed, or kept) */}
-                            <button className="hidden sm:block md:block text-gray-600 hover:text-[#f0c961] transition-colors">
-                                <Heart className="w-6 h-6" strokeWidth={2} />
+                        <div className="flex items-center gap-2 md:gap-5 shrink-0">
+                            {/* Heart */}
+                            <button className="hidden sm:block text-gray-600 hover:text-[#f0c961] transition-colors">
+                                <Heart className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2} />
                             </button>
 
                             {/* User */}
                             <Link to={session ? "/account" : "/login"} className="text-gray-600 hover:text-[#f0c961] transition-colors">
-                                <User className="w-6 h-6" strokeWidth={2} />
+                                <User className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2} />
                             </Link>
 
                             {/* Cart */}
                             <Link to="/cart" className="relative text-gray-600 hover:text-[#f0c961] transition-colors">
-                                <ShoppingCart className="w-6 h-6" strokeWidth={2} />
+                                <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2} />
                                 {cartCount > 0 && (
-                                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center rounded-full border border-white">
+                                    <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 md:w-4 md:h-4 bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center rounded-full border border-white">
                                         {cartCount}
                                     </span>
                                 )}
@@ -229,19 +211,19 @@ export default function Header() {
                         </div>
                     </div>
 
-                    {/* ROW 2: Search Bar (Mobile Only or optimized for both) */}
-                    <div className="w-full mt-3 md:hidden"> {/* Hide on desktop if we want a different desktop layout, but user asked for this specific design. Let's keep it visible on mobile mainly. */}
+                    {/* ROW 2: Search Bar (Mobile Only) - Compact */}
+                    <div className="w-full mt-2 md:hidden pb-1">
                         <div className="relative group">
                             <input
                                 type="text"
-                                placeholder="Site içi ürün arama"
+                                placeholder="Ürün ara..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                className="w-full pl-10 pr-4 py-2.5 rounded-full border border-orange-200 bg-white text-gray-700 placeholder-gray-400 focus:border-[#f0c961] focus:ring-1 focus:ring-[#f0c961]/20 outline-none text-sm transition-all"
+                                className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-800 placeholder-gray-400 focus:border-[#f0c961] outline-none text-xs"
                             />
-                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-red-800/80">
-                                <Search className="w-4 h-4" />
+                            <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400">
+                                <Search className="w-3.5 h-3.5" />
                             </div>
                         </div>
                     </div>
@@ -268,7 +250,7 @@ export default function Header() {
                                         <div className="p-4 text-center text-gray-400 text-sm">Aranıyor...</div>
                                     ) : searchResults.length > 0 ? (
                                         <ul>
-                                            {searchResults.map((item, idx) => (
+                                            {searchResults.map((item) => (
                                                 <li key={`${item.type}-${item.id}`} className="border-b border-gray-50 last:border-0 hover:bg-[#fffaf4] transition-colors">
                                                     <Link
                                                         to={item.type === 'category' ? `/kategori/${item.slug}` : `/products/${item.slug}`}
@@ -347,11 +329,15 @@ export default function Header() {
                                     <span className="absolute bottom-4 left-1/2 -translate-x-1/2 w-0 h-[3px] bg-[#f0c961] rounded-t-full transition-all duration-300 group-hover:w-full opacity-0 group-hover:opacity-100"></span>
                                 </div>
                             ))}
-                            <Link to="#" className="py-4 text-[12px] font-bold text-gray-600 hover:text-[#f0c961] whitespace-nowrap transition-colors tracking-widest relative group">
+                            <Link to="/bayi-basvuru" className="py-4 text-[12px] font-bold text-gray-600 hover:text-[#f0c961] whitespace-nowrap transition-colors tracking-widest relative group">
+                                BAYİLİK BAŞVURUSU
+                                <span className="absolute bottom-4 left-1/2 -translate-x-1/2 w-0 h-[3px] bg-[#f0c961] rounded-t-full transition-all duration-300 group-hover:w-full opacity-0 group-hover:opacity-100"></span>
+                            </Link>
+                            <Link to="/hakkimizda" className="py-4 text-[12px] font-bold text-gray-600 hover:text-[#f0c961] whitespace-nowrap transition-colors tracking-widest relative group">
                                 HAKKIMIZDA
                                 <span className="absolute bottom-4 left-1/2 -translate-x-1/2 w-0 h-[3px] bg-[#f0c961] rounded-t-full transition-all duration-300 group-hover:w-full opacity-0 group-hover:opacity-100"></span>
                             </Link>
-                            <Link to="#" className="py-4 text-[12px] font-bold text-gray-600 hover:text-[#f0c961] whitespace-nowrap transition-colors tracking-widest relative group">
+                            <Link to="/iletisim" className="py-4 text-[12px] font-bold text-gray-600 hover:text-[#f0c961] whitespace-nowrap transition-colors tracking-widest relative group">
                                 İLETİŞİM
                                 <span className="absolute bottom-4 left-1/2 -translate-x-1/2 w-0 h-[3px] bg-[#f0c961] rounded-t-full transition-all duration-300 group-hover:w-full opacity-0 group-hover:opacity-100"></span>
                             </Link>
@@ -418,28 +404,27 @@ export default function Header() {
 
                             <div className="pt-4 space-y-2">
                                 <Link to="/products" className="block py-3 font-bold text-gray-800 border-b border-gray-100 hover:text-[#f0c961] text-sm">TÜM ÜRÜNLER</Link>
-                                <Link to="#" className="block py-3 font-bold text-gray-800 border-b border-gray-100 hover:text-[#f0c961] text-sm">HAKKIMIZDA</Link>
-                                <Link to="#" className="block py-3 font-bold text-gray-800 hover:text-[#f0c961] text-sm">İLETİŞİM</Link>
+                                <Link to="/bayi-basvuru" className="block py-3 font-bold text-gray-800 border-b border-gray-100 hover:text-[#f0c961] text-sm">BAYİLİK BAŞVURUSU</Link>
+                                <Link to="/hakkimizda" className="block py-3 font-bold text-gray-800 border-b border-gray-100 hover:text-[#f0c961] text-sm">HAKKIMIZDA</Link>
+                                <Link to="/iletisim" className="block py-3 font-bold text-gray-800 hover:text-[#f0c961] text-sm">İLETİŞİM</Link>
                             </div>
                         </nav>
 
                         {/* Mobile Footer (Account) */}
-                        <div className="p-4 bg-gray-50 border-t border-gray-100">
+                        <div className="p-4 bg-white border-t border-gray-100 mt-auto">
                             {session ? (
-                                <Link to="/account" className="flex items-center gap-3 w-full p-3 bg-white rounded-xl shadow-sm border border-gray-100 hover:bg-[#fffaf4]" onClick={() => setIsMobileMenuOpen(false)}>
-                                    <div className="w-10 h-10 bg-[#f0c961]/20 text-[#f0c961] rounded-full flex items-center justify-center">
-                                        <User className="w-5 h-5" />
+                                <Link to="/account" className="flex items-center gap-3 w-full p-3 bg-gray-50 rounded-lg border border-gray-100" onClick={() => setIsMobileMenuOpen(false)}>
+                                    <div className="w-8 h-8 bg-[#f0c961]/20 text-[#f0c961] rounded-full flex items-center justify-center">
+                                        <User className="w-4 h-4" />
                                     </div>
                                     <div>
                                         <div className="font-bold text-gray-900 text-sm">Hesabım</div>
-                                        <div className="text-xs text-gray-500">Siparişlerini yönet</div>
+                                        <div className="text-[10px] text-gray-500">Siparişlerini yönet</div>
                                     </div>
                                 </Link>
                             ) : (
-                                <Link to="/login" className="flex items-center gap-3 w-full p-3 bg-[#1a1a1a] text-white rounded-xl shadow-lg hover:bg-[#333]" onClick={() => setIsMobileMenuOpen(false)}>
-                                    <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
-                                        <User className="w-5 h-5" />
-                                    </div>
+                                <Link to="/login" className="flex items-center justify-center gap-2 w-full py-3 bg-[#1a1a1a] text-white rounded-lg shadow hover:bg-[#333] transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
+                                    <User className="w-4 h-4" />
                                     <span className="font-bold text-sm">Giriş Yap / Kayıt Ol</span>
                                 </Link>
                             )}

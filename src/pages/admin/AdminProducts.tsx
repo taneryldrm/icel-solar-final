@@ -8,6 +8,7 @@ interface ProductSummary {
     name: string;
     brand: string;
     is_active: boolean;
+    is_featured: boolean;
     total_variant_count: number;
     active_variant_count: number;
     category_count: number;
@@ -30,7 +31,7 @@ const AdminProducts: React.FC = () => {
             const { data: productsData, error } = await supabase
                 .from('products')
                 .select(`
-                    id, name, slug, brand, description, is_active, created_at,
+                    id, name, slug, brand, description, is_active, is_featured, created_at,
                     product_variants(is_active)
                 `)
                 .order('created_at', { ascending: false });
@@ -62,6 +63,7 @@ const AdminProducts: React.FC = () => {
                 brand: p.brand || '-',
                 description: p.description,
                 is_active: p.is_active,
+                is_featured: p.is_featured,
                 total_variant_count: p.product_variants?.length || 0,
                 active_variant_count: p.product_variants?.filter((v: any) => v.is_active).length || 0,
                 category_count: categoryCounts[p.id] || 0
@@ -186,7 +188,10 @@ const AdminProducts: React.FC = () => {
                                 products.map((product) => (
                                     <tr key={product.id} className="hover:bg-gray-50 transition-colors group">
                                         <td className="p-4 font-medium text-gray-900">
-                                            {product.name}
+                                            <div className="flex items-center gap-2">
+                                                <span>{product.name}</span>
+                                                {product.is_featured && <span title="Vitrin Ürünü">⭐</span>}
+                                            </div>
                                             <div className="text-[10px] text-gray-400 font-mono mt-0.5 truncate max-w-[200px]">{product.slug}</div>
                                         </td>
                                         <td className="p-4 text-gray-600 text-sm">{product.brand}</td>
@@ -228,7 +233,7 @@ const AdminProducts: React.FC = () => {
                                                         setEditingProduct(product);
                                                         setIsModalOpen(true);
                                                     }}
-                                                    className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded hover:bg-blue-100 transition-colors"
+                                                    className="inline-flex items-center px-3 py-1.5 bg-yellow-50 text-yellow-700 text-xs font-medium rounded hover:bg-yellow-100 transition-colors"
                                                 >
                                                     Düzenle
                                                 </button>

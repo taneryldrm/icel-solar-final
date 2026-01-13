@@ -27,7 +27,6 @@ const AdminProductDetail: React.FC = () => {
     const [priceLists, setPriceLists] = useState<PriceList[]>([]);
     const [productName, setProductName] = useState<string>('');
     const [loading, setLoading] = useState<boolean>(true);
-    const [updating, setUpdating] = useState<string | null>(null); // Hangi varyant güncelleniyor
     const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
     const [editingVariant, setEditingVariant] = useState<VariantDisplay | null>(null);
 
@@ -116,7 +115,7 @@ id, name, sku, stock, base_price, is_active,
     // STOK GÜNCELLEME
     const handleStockChange = async (variantId: string, newStock: number) => {
         if (newStock < 0) return;
-        setUpdating(variantId);
+
         try {
             const { error } = await supabase
                 .from('product_variants')
@@ -128,8 +127,6 @@ id, name, sku, stock, base_price, is_active,
             setVariants(prev => prev.map(v => v.id === variantId ? { ...v, stock: newStock } : v));
         } catch (e) {
             alert("Stok güncellenemedi.");
-        } finally {
-            setUpdating(null);
         }
     };
 

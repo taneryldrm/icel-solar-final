@@ -130,9 +130,13 @@ const AdminProducts: React.FC = () => {
             alert("Ürün ve ilişkili tüm veriler başarıyla silindi.");
             fetchProducts();
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Delete error:", error);
-            alert("Ürün silinirken bir hata oluştu.");
+            if (error?.code === '23503') {
+                alert("Bu ürün geçmiş siparişlerde yer aldığı için SİLİNEMEZ.\n\nVeri bütünlüğünü korumak adına, lütfen ürünü silmek yerine durumunu 'Pasif' olarak güncelleyerek gizleyin.");
+            } else {
+                alert("Ürün silinirken bir hata oluştu: " + (error?.message || "Bilinmeyen hata"));
+            }
         } finally {
             setLoading(false);
         }

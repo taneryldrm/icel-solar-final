@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import { Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ProductModal from '../../components/admin/ProductModal';
 
@@ -12,6 +13,7 @@ interface ProductSummary {
     total_variant_count: number;
     active_variant_count: number;
     category_count: number;
+    category_names: string[];
     description?: string;
     slug?: string;
 }
@@ -19,6 +21,9 @@ interface ProductSummary {
 const AdminProducts: React.FC = () => {
     const [products, setProducts] = useState<ProductSummary[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+
+    // Search State
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,19 +43,25 @@ const AdminProducts: React.FC = () => {
 
             if (error) throw error;
 
-            // 2. Kategori İlişkilerini Ayrı Çek (FK Hatasını önlemek için)
-            let categoryCounts: Record<string, number> = {};
+            // 2. Kategori İlişkilerini ve İsimlerini Çek
+            let categoryData: Record<string, { count: number; names: string[] }> = {};
             if (productsData && productsData.length > 0) {
                 const productIds = productsData.map(p => p.id);
                 const { data: catData } = await supabase
                     .from('product_categories')
-                    .select('product_id')
+                    .select('product_id, categories(name)')
                     .in('product_id', productIds);
 
-                // Grupla ve Say
+                // Grupla ve İsimleri Topla
                 if (catData) {
                     catData.forEach((item: any) => {
-                        categoryCounts[item.product_id] = (categoryCounts[item.product_id] || 0) + 1;
+                        if (!categoryData[item.product_id]) {
+                            categoryData[item.product_id] = { count: 0, names: [] };
+                        }
+                        categoryData[item.product_id].count++;
+                        if (item.categories?.name) {
+                            categoryData[item.product_id].names.push(item.categories.name);
+                        }
                     });
                 }
             }
@@ -66,7 +77,8 @@ const AdminProducts: React.FC = () => {
                 is_featured: p.is_featured,
                 total_variant_count: p.product_variants?.length || 0,
                 active_variant_count: p.product_variants?.filter((v: any) => v.is_active).length || 0,
-                category_count: categoryCounts[p.id] || 0
+                category_count: categoryData[p.id]?.count || 0,
+                category_names: categoryData[p.id]?.names || []
             }));
 
             setProducts(formattedData);
@@ -81,6 +93,17 @@ const AdminProducts: React.FC = () => {
     useEffect(() => {
         fetchProducts();
     }, []);
+
+    // Filtered products based on search
+    const filteredProducts = useMemo(() => {
+        if (!searchQuery.trim()) return products;
+        const query = searchQuery.toLowerCase();
+        return products.filter(p =>
+            p.name.toLowerCase().includes(query) ||
+            p.brand.toLowerCase().includes(query) ||
+            p.slug?.toLowerCase().includes(query)
+        );
+    }, [products, searchQuery]);
 
     const handleStatusToggle = async (id: string, currentStatus: boolean) => {
         if (!window.confirm(`Ürünü ${currentStatus ? 'pasif' : 'aktif'} yapmak istediğinize emin misiniz?`)) return;
@@ -153,10 +176,12 @@ const AdminProducts: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50 p-8">
             <div className="max-w-7xl mx-auto">
-                <div className="flex justify-between items-center mb-8">
+                <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Ürün Yönetimi</h1>
-                        <p className="text-gray-500 text-sm mt-1">Toplam {products.length} ürün listeleniyor</p>
+                        <p className="text-gray-500 text-sm mt-1">
+                            {searchQuery ? `${filteredProducts.length} / ${products.length} ürün` : `Toplam ${products.length} ürün`}
+                        </p>
                     </div>
                     <button
                         onClick={() => {
@@ -167,6 +192,28 @@ const AdminProducts: React.FC = () => {
                     >
                         <span className="text-xl leading-none font-bold">+</span> Yeni Ürün
                     </button>
+                </div>
+
+                {/* Search Box */}
+                <div className="mb-6">
+                    <div className="relative max-w-md">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Ürün adı, marka veya slug ile ara..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f0c961] focus:border-transparent transition-all"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -182,14 +229,14 @@ const AdminProducts: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {products.length === 0 ? (
+                            {filteredProducts.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="p-12 text-center text-gray-500 italic">
-                                        Henüz bir ürün eklenmemiş. Yeni ürün ekleyerek başlayın.
+                                        {searchQuery ? `"${searchQuery}" için sonuç bulunamadı.` : 'Henüz bir ürün eklenmemiş. Yeni ürün ekleyerek başlayın.'}
                                     </td>
                                 </tr>
                             ) : (
-                                products.map((product) => (
+                                filteredProducts.map((product) => (
                                     <tr key={product.id} className="hover:bg-gray-50 transition-colors group">
                                         <td className="p-4 font-medium text-gray-900">
                                             <div className="flex items-center gap-2">
@@ -210,10 +257,25 @@ const AdminProducts: React.FC = () => {
                                                 {product.is_active ? 'Aktif' : 'Pasif'}
                                             </button>
                                         </td>
-                                        <td className="p-4 text-center text-gray-600 text-sm">
-                                            <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-semibold">
-                                                {product.category_count}
-                                            </span>
+                                        <td className="p-4 text-center">
+                                            {product.category_count === 0 ? (
+                                                <span className="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs font-semibold">
+                                                    Kategorisiz
+                                                </span>
+                                            ) : (
+                                                <div className="flex flex-wrap justify-center gap-1">
+                                                    {product.category_names.slice(0, 2).map((name, idx) => (
+                                                        <span key={idx} className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
+                                                            {name}
+                                                        </span>
+                                                    ))}
+                                                    {product.category_names.length > 2 && (
+                                                        <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs font-medium">
+                                                            +{product.category_names.length - 2}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="p-4 text-center">
                                             <div className="flex flex-col items-center gap-1">

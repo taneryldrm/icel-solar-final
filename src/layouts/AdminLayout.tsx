@@ -7,10 +7,10 @@ import {
     FolderTree,
     Users,
     LogOut,
-    Tags,
     Image as ImageIcon,
     LayoutTemplate,
-    MessageSquare
+    MessageSquare,
+    Settings
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
@@ -29,10 +29,10 @@ const AdminLayout: React.FC = () => {
         { path: '/admin/orders', label: 'Siparişler', icon: ShoppingCart },
         { path: '/admin/categories', label: 'Kategori Yönetimi', icon: FolderTree },
         { path: '/admin/dealers', label: 'Bayi Yönetimi', icon: Users },
-        { path: '/admin/price-lists', label: 'Fiyat Listeleri', icon: Tags },
         { path: '/admin/hero-yonetimi', label: 'Hero Slider', icon: LayoutTemplate },
         { path: '/admin/featured-collections', label: 'Vitrin (Koleksiyon)', icon: ImageIcon },
         { path: '/admin/reviews', label: 'Yorum Yönetimi', icon: MessageSquare },
+        { path: '/admin/settings', label: 'Ayarlar (Döviz)', icon: Settings },
     ];
 
     return (

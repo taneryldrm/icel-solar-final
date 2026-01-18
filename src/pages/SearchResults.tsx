@@ -25,11 +25,31 @@ const SearchResults: React.FC = () => {
                 if (query) {
                     const { data } = await supabase
                         .from('products')
-                        .select('*, product_images(url, is_primary), product_variants(id, name, base_price, stock, sku)')
+                        .select('*, product_images(url, is_primary), product_variants(id, name, base_price, stock, sku, discount_percentage, discount_start_date, discount_end_date)')
                         .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
                         .eq('is_active', true);
                     results = data || [];
                 }
+
+                // Apply discounts helper
+                const applyDiscounts = (variants: any[]) => {
+                    const now = new Date();
+                    return variants.map((v: any) => {
+                        const discountActive = (v.discount_percentage || 0) > 0 &&
+                            (!v.discount_start_date || new Date(v.discount_start_date) <= now) &&
+                            (!v.discount_end_date || new Date(v.discount_end_date) >= now);
+                        const finalPrice = discountActive
+                            ? v.base_price * (1 - v.discount_percentage / 100)
+                            : v.base_price;
+                        return {
+                            ...v,
+                            price: finalPrice,
+                            originalPrice: v.base_price,
+                            hasDiscount: discountActive,
+                            discount_percentage: v.discount_percentage || 0
+                        };
+                    });
+                };
 
                 // Pricing Helper
                 const applyPricing = async (list: Product[]) => {
@@ -39,7 +59,7 @@ const SearchResults: React.FC = () => {
                         const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
                         userRole = profile?.role || 'b2c';
                     }
-                    if (userRole === 'b2c') return list.map(p => ({ ...p, product_variants: p.product_variants?.map(v => ({ ...v, price: v.base_price })) }));
+                    if (userRole === 'b2c') return list.map(p => ({ ...p, product_variants: applyDiscounts(p.product_variants || []) }));
 
                     // B2B
                     const ids = list.flatMap(p => p.product_variants?.map(v => v.id) || []);
@@ -50,10 +70,10 @@ const SearchResults: React.FC = () => {
 
                     return list.map(p => ({
                         ...p,
-                        product_variants: p.product_variants?.map((v: any) => ({
+                        product_variants: applyDiscounts((p.product_variants || []).map((v: any) => ({
                             ...v,
-                            price: priceMap.get(v.id) || v.base_price
-                        }))
+                            base_price: priceMap.get(v.id) || v.base_price
+                        })))
                     }));
                 };
 
@@ -63,7 +83,7 @@ const SearchResults: React.FC = () => {
                     setSuggestedProducts([]);
                 } else {
                     setProducts([]);
-                    const { data: sugg } = await supabase.from('products').select('*, product_images(url, is_primary), product_variants(id, name, base_price, stock, sku)').eq('is_active', true).limit(4);
+                    const { data: sugg } = await supabase.from('products').select('*, product_images(url, is_primary), product_variants(id, name, base_price, stock, sku, discount_percentage, discount_start_date, discount_end_date)').eq('is_active', true).limit(4);
                     if (sugg) {
                         const pricedSugg = await applyPricing(sugg);
                         setSuggestedProducts(pricedSugg);

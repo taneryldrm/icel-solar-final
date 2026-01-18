@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import ProductReviews from '../components/ProductReviews';
+
+import SimilarProducts from '../components/SimilarProducts';
 import { supabase } from '../lib/supabaseClient';
 import { getOrCreateActiveCart } from '../lib/cart';
 import { fetchUserRole, calculateVariantPrice } from '../lib/pricing';
+import { useCurrency } from '../hooks/useCurrency';
+import { Star } from 'lucide-react'; // Added import
 
 // --- Types ---
 interface Product {
@@ -14,6 +17,7 @@ interface Product {
     slug: string;
     is_active: boolean;
     product_images?: { url: string; is_primary: boolean }[];
+    product_categories?: { category_id: string }[];
 }
 
 interface Variant {
@@ -23,11 +27,17 @@ interface Variant {
     sku: string;
     base_price: number;
     price: number;
+    originalPrice: number;
     stock: number;
     is_active: boolean;
+    discount_percentage: number;
+    discount_start_date: string | null;
+    discount_end_date: string | null;
+    hasDiscount: boolean;
 }
 
 const ProductDetail: React.FC = () => {
+    const { formatPrice } = useCurrency();
     const { slug } = useParams<{ slug: string }>();
 
     // --- State ---
@@ -36,6 +46,7 @@ const ProductDetail: React.FC = () => {
     const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
     const [quantity, setQuantity] = useState<number>(1);
     const [activeImage, setActiveImage] = useState<string | null>(null);
+    const [reviewStats, setReviewStats] = useState<{ average: number; count: number }>({ average: 0, count: 0 });
 
     // Reset quantity when variant changes
     useEffect(() => {
@@ -75,7 +86,7 @@ const ProductDetail: React.FC = () => {
 
                 const { data: productData, error: productError } = await supabase
                     .from('products')
-                    .select('id, name, description, brand, slug, is_active, product_images(url, is_primary)')
+                    .select('id, name, description, brand, slug, is_active, product_images(url, is_primary), product_categories(category_id)')
                     .eq(queryColumn, slug)
                     .single();
 
@@ -95,16 +106,19 @@ const ProductDetail: React.FC = () => {
 
                 setProduct(productData);
 
+                // DEBUG: Kategori kontrolü
+                console.log('Ürün kategorileri:', productData.product_categories);
+
                 // Set Initial Active Image
                 if (productData.product_images && productData.product_images.length > 0) {
                     const primary = productData.product_images.find((i: any) => i.is_primary);
                     setActiveImage(primary ? primary.url : productData.product_images[0].url);
                 }
 
-                // 2. Varyantları Çek (Active Only)
+                // 2. Varyantları Çek (Active Only) - indirim bilgileri dahil
                 const { data: variantsData, error: variantsError } = await supabase
                     .from('product_variants')
-                    .select('id, product_id, name, sku, base_price, stock, is_active')
+                    .select('id, product_id, name, sku, base_price, stock, is_active, discount_percentage, discount_start_date, discount_end_date')
                     .eq('product_id', productData.id)
                     .eq('is_active', true)
                     .order('base_price', { ascending: true });
@@ -115,11 +129,51 @@ const ProductDetail: React.FC = () => {
                 const userRole = await fetchUserRole();
 
                 const variantsWithPrices = await Promise.all((variantsData || []).map(async (v) => {
-                    const finalPrice = await calculateVariantPrice(v.id, v.base_price, userRole);
-                    return { ...v, price: finalPrice };
+                    const finalPrice = await calculateVariantPrice(
+                        v.id,
+                        v.base_price,
+                        userRole,
+                        v.discount_percentage || 0,
+                        v.discount_start_date,
+                        v.discount_end_date
+                    );
+
+                    // İndirim aktif mi kontrol et
+                    const now = new Date();
+                    const discountActive = (v.discount_percentage || 0) > 0 &&
+                        (!v.discount_start_date || new Date(v.discount_start_date) <= now) &&
+                        (!v.discount_end_date || new Date(v.discount_end_date) >= now);
+
+                    return {
+                        ...v,
+                        price: finalPrice,
+                        originalPrice: v.base_price,
+                        hasDiscount: discountActive,
+                        discount_percentage: v.discount_percentage || 0
+                    };
                 }));
 
                 setVariants(variantsWithPrices);
+
+                // Automatically select the first available variant
+                const firstAvailableVariant = variantsWithPrices.find(v => v.stock > 0);
+                if (firstAvailableVariant) {
+                    setSelectedVariant(firstAvailableVariant);
+                }
+
+                // 4. Review Stats (Count & Average)
+                const { data: reviewsData } = await supabase
+                    .from('product_reviews')
+                    .select('rating')
+                    .eq('product_id', productData.id)
+                    .eq('is_approved', true);
+
+                if (reviewsData) {
+                    const total = reviewsData.reduce((acc: any, r: any) => acc + r.rating, 0);
+                    const count = reviewsData.length;
+                    const average = count > 0 ? total / count : 0;
+                    setReviewStats({ average, count });
+                }
 
             } catch (err: any) {
                 console.error('Veri çekme hatası:', err);
@@ -141,17 +195,11 @@ const ProductDetail: React.FC = () => {
         setCartMessage(null);
 
         try {
-            // 1. Oturum Kontrolü
+            // Check if user is logged in (optional - guests can also add to cart)
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                setCartMessage({ type: 'error', text: 'Sepete eklemek için lütfen giriş yapınız.' });
-                setAddingToCart(false);
-                return;
-            }
+            const userId = session?.user?.id; // undefined if not logged in (guest)
 
-            const userId = session.user.id;
-
-            // 2. Aktif Sepeti Bul veya Oluştur (Helpers ile Reliable)
+            // Get/Create Cart (works for both users and guests)
             const cartId = await getOrCreateActiveCart(userId);
 
             if (!cartId) {
@@ -160,7 +208,7 @@ const ProductDetail: React.FC = () => {
                 return;
             }
 
-            // 3. Ürün Zaten Sepette Var mı?
+            // Ürün Zaten Sepette Var mı?
             const { data: existingItem, error: fetchItemError } = await supabase
                 .from('cart_items')
                 .select('id, quantity')
@@ -174,7 +222,7 @@ const ProductDetail: React.FC = () => {
                 // Güncelle
                 const { error: updateError } = await supabase
                     .from('cart_items')
-                    .update({ quantity: existingItem.quantity + quantity }) // Add selected quantity
+                    .update({ quantity: existingItem.quantity + quantity })
                     .eq('id', existingItem.id);
 
                 if (updateError) throw updateError;
@@ -185,7 +233,7 @@ const ProductDetail: React.FC = () => {
                     .insert({
                         cart_id: cartId,
                         variant_id: selectedVariant.id,
-                        quantity: quantity // Use selected quantity
+                        quantity: quantity
                     });
 
                 if (insertError) throw insertError;
@@ -227,15 +275,16 @@ const ProductDetail: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-[#fffaf4] py-12 px-4 shadow-inner">
+        <div className="min-h-screen bg-[#fffaf4] py-8 px-4">
             <div className="container mx-auto max-w-6xl">
 
-                {/* 1. Ürün Başlık Alanı */}
-                <div className="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-gray-100 mb-8 relative overflow-hidden">
-                    <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start">
-                        <div className="w-full md:w-1/3 flex flex-col gap-4">
-                            {/* Main Active Image */}
-                            <div className="w-full bg-[#fdfcf8] rounded-2xl aspect-square flex items-center justify-center border border-gray-50 overflow-hidden relative shadow-sm">
+                {/* Tek Kart - Tüm Ürün Bilgileri */}
+                <div className="bg-white rounded-3xl p-6 md:p-10 shadow-lg border border-gray-100 mb-8">
+                    <div className="flex flex-col lg:flex-row gap-8">
+
+                        {/* Sol: Ürün Görseli */}
+                        <div className="w-full lg:w-2/5 flex flex-col gap-4">
+                            <div className="w-full bg-[#fdfcf8] rounded-2xl aspect-square flex items-center justify-center border border-gray-100 overflow-hidden shadow-sm">
                                 {activeImage ? (
                                     <img
                                         src={activeImage}
@@ -272,161 +321,175 @@ const ProductDetail: React.FC = () => {
                             )}
                         </div>
 
-                        <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-4">
+                        {/* Sağ: Ürün Detayları, Varyantlar, Sepet */}
+                        <div className="flex-1 flex flex-col">
+
+                            {/* Marka & Durum */}
+                            <div className="flex items-center gap-3 mb-3">
                                 <span className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold uppercase tracking-wider rounded-full">
                                     {product.brand || 'İçel Solar Market'}
                                 </span>
                                 {product.is_active && (
                                     <span className="flex items-center gap-1 text-green-600 text-xs font-bold uppercase tracking-wider">
                                         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                        Aktif Ürün
+                                        Stokta
                                     </span>
                                 )}
                             </div>
 
-                            <h1 className="text-3xl md:text-5xl font-black text-[#1a1a1a] mb-6 leading-tight">
+                            {/* Ürün Adı */}
+                            <h1 className="text-2xl md:text-4xl font-black text-[#1a1a1a] mb-2 leading-tight">
                                 {product.name}
                             </h1>
 
-                            <p className="text-gray-500 text-lg leading-relaxed max-w-2xl">
-                                {product.description || 'Bu ürün için detaylı açıklama bulunmamaktadır.'}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 2. Varyant Seçimi & Sepet İşlemleri */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-                    {/* Sol Kolon: Varyant Listesi */}
-                    <div className="lg:col-span-2">
-                        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 min-h-[400px]">
-                            <h3 className="text-xl font-bold text-[#1a1a1a] mb-6 flex items-center gap-2">
-                                <svg className="w-6 h-6 text-[#f0c961]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg>
-                                Seçenekler (Varyantlar)
-                            </h3>
-
-                            {variants.length === 0 ? (
-                                <div className="p-6 bg-yellow-50 text-yellow-800 rounded-xl border border-yellow-200 text-center">
-                                    Bu ürün için şu anda satışa açık varyant bulunmamaktadır.
+                            {/* Review Stars & Count */}
+                            <div className="flex items-center gap-2 mb-6">
+                                <div className="flex">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <Star
+                                            key={star}
+                                            className={`w-4 h-4 ${star <= Math.round(reviewStats.average) ? 'text-[#f0c961] fill-[#f0c961]' : 'text-gray-200 fill-gray-100'}`}
+                                        />
+                                    ))}
                                 </div>
-                            ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {variants.map((v) => {
-                                        const isSelected = selectedVariant?.id === v.id;
-                                        const hasStock = v.stock > 0;
+                                <span className="text-sm text-gray-500 font-medium">
+                                    {reviewStats.count} yorum
+                                </span>
+                            </div>
 
-                                        return (
-                                            <button
-                                                key={v.id}
-                                                onClick={() => hasStock && setSelectedVariant(v)}
-                                                disabled={!hasStock}
-                                                className={`
-                                                    relative flex flex-col items-start p-5 rounded-xl border-2 transition-all duration-200 text-left w-full group
-                                                    ${isSelected
-                                                        ? 'border-[#f0c961] bg-[#fffaf4] shadow-md ring-1 ring-[#f0c961]'
-                                                        : 'border-gray-100 bg-white hover:border-[#f0c961]/50 hover:bg-gray-50'}
-                                                    ${!hasStock ? 'opacity-50 cursor-not-allowed grayscale bg-gray-50' : 'cursor-pointer'}
-                                                `}
-                                            >
-                                                <div className="w-full flex justify-between items-start mb-2">
-                                                    <span className={`font-bold text-lg ${isSelected ? 'text-[#1a1a1a]' : 'text-gray-700'}`}>
-                                                        {v.name}
-                                                    </span>
-                                                    {isSelected && hasStock && (
-                                                        <span className="bg-[#f0c961] text-[#1a1a1a] text-xs font-bold px-2 py-1 rounded-full">
-                                                            SEÇİLDİ
-                                                        </span>
-                                                    )}
-                                                </div>
+                            {/* Varyant Seçimi */}
+                            {variants.length > 0 && (
+                                <div className="mb-6">
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-3">
+                                        Seçenek
+                                    </label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {variants.map((v) => {
+                                            const isSelected = selectedVariant?.id === v.id;
+                                            const hasStock = v.stock > 0;
 
-                                                <div className="text-sm text-gray-400 mb-4 font-mono">{v.sku}</div>
-
-                                                <div className="mt-auto w-full pt-4 border-t border-gray-100 flex items-center justify-between">
-                                                    <div className="text-xl font-black text-[#1a1a1a]">
-                                                        {v.price.toLocaleString('tr-TR')} ₺
-                                                    </div>
-                                                    <div className={`text-xs font-bold px-2 py-1 rounded ${hasStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                        {hasStock ? 'STOKTA' : 'TÜKENDİ'}
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
+                                            return (
+                                                <button
+                                                    key={v.id}
+                                                    onClick={() => hasStock && setSelectedVariant(v)}
+                                                    disabled={!hasStock}
+                                                    className={`
+                                                        px-4 py-2 rounded-lg border-2 font-semibold text-sm transition-all
+                                                        ${isSelected
+                                                            ? 'border-[#f0c961] bg-[#fffaf4] text-[#1a1a1a]'
+                                                            : 'border-gray-200 bg-white text-gray-700 hover:border-[#f0c961]/50'}
+                                                        ${!hasStock ? 'opacity-40 cursor-not-allowed line-through' : 'cursor-pointer'}
+                                                    `}
+                                                >
+                                                    {v.name}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
-                        </div>
-                    </div>
 
-                    {/* Sağ Kolon: Sepet Özeti */}
-                    <div className="lg:col-span-1">
-                        <div className="bg-white rounded-3xl p-8 shadow-2xl border border-gray-100 sticky top-32">
-                            <h3 className="text-lg font-bold text-gray-400 uppercase tracking-widest mb-6 border-b pb-4">Sipariş Özeti</h3>
+                            {/* Fiyat Bilgileri - İndirim desteği ile */}
+                            {selectedVariant && (
+                                <div className="mb-6">
+                                    {/* İndirim Rozeti */}
+                                    {selectedVariant.hasDiscount && (
+                                        <div className="inline-flex items-center gap-2 mb-2">
+                                            <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
+                                                %{selectedVariant.discount_percentage} İNDİRİM
+                                            </span>
+                                        </div>
+                                    )}
 
-                            {!selectedVariant ? (
-                                <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-xl mb-6 border border-dashed border-gray-200">
-                                    Lütfen sol taraftan bir seçenek (varyant) belirleyiniz.
-                                </div>
-                            ) : (
-                                <div className="mb-8 animate-fade-in-up">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className="text-gray-600">Seçilen Ürün:</span>
-                                    </div>
-                                    <div className="font-bold text-[#1a1a1a] text-lg mb-4 leading-tight">
-                                        {product.name} <br />
-                                        <span className="text-[#f0c961]">{selectedVariant.name}</span>
-                                    </div>
-
-                                    <div className="flex justify-between items-center py-4 border-t border-b border-gray-100 mb-6">
-                                        <span className="text-gray-600 font-bold">Toplam Tutar:</span>
-                                        <span className="text-3xl font-black text-[#1a1a1a]">
-                                            {(selectedVariant.price * quantity).toLocaleString('tr-TR')} ₺
+                                    {/* Büyük Toplam Fiyat */}
+                                    <div className="flex items-baseline gap-3 mb-4">
+                                        <span className={`text-3xl md:text-4xl font-black ${selectedVariant.hasDiscount ? 'text-red-600' : 'text-[#2d5a27]'}`}>
+                                            {formatPrice(selectedVariant.price)}
                                         </span>
+                                        {selectedVariant.hasDiscount && (
+                                            <span className="text-xl text-gray-500 line-through decoration-red-500 decoration-2">
+                                                {formatPrice(selectedVariant.originalPrice)}
+                                            </span>
+                                        )}
                                     </div>
 
-                                    {/* Miktar Seçici */}
-                                    <div className="mb-6">
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Adet</label>
-                                        <div className="flex items-center gap-4 bg-gray-50 rounded-xl p-2 border border-gray-200 w-max">
-                                            <button
-                                                onClick={() => handleQuantityChange('decrease')}
-                                                disabled={quantity <= 1}
-                                                className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm font-bold text-gray-600 hover:text-[#f0c961] disabled:opacity-50 disabled:hover:text-gray-600 transition-colors"
-                                            >
-                                                -
-                                            </button>
-                                            <span className="text-xl font-bold text-[#1a1a1a] w-8 text-center">{quantity}</span>
-                                            <button
-                                                onClick={() => handleQuantityChange('increase')}
-                                                disabled={quantity >= selectedVariant.stock}
-                                                className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm font-bold text-gray-600 hover:text-[#f0c961] disabled:opacity-50 disabled:hover:text-gray-600 transition-colors"
-                                            >
-                                                +
-                                            </button>
+                                    {/* Ürün Bilgi Tablosu */}
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex">
+                                            <span className="text-gray-600 w-24">Marka</span>
+                                            <span className="text-gray-400 mr-2">:</span>
+                                            <span className="text-gray-800 font-medium">{product.brand || 'İçel Solar'}</span>
                                         </div>
-                                        <div className="text-xs text-gray-400 mt-2 font-medium">
-                                            Stok: {selectedVariant.stock} Adet
+                                        <div className="flex">
+                                            <span className="text-gray-600 w-24">Stok Kodu</span>
+                                            <span className="text-gray-400 mr-2">:</span>
+                                            <span className="text-gray-800 font-medium">{selectedVariant.sku}</span>
+                                        </div>
+                                        <div className="flex">
+                                            <span className="text-gray-600 w-24">Fiyat</span>
+                                            <span className="text-gray-400 mr-2">:</span>
+                                            <span className="text-gray-800 font-medium">
+                                                {formatPrice(selectedVariant.price / 1.20)} + KDV
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
                             )}
 
-                            <button
-                                onClick={handleAddToCart}
-                                disabled={!selectedVariant || addingToCart || (selectedVariant?.stock || 0) <= 0}
-                                className={`
-                                    w-full py-4 px-6 rounded-xl font-black uppercase tracking-widest transition-all transform active:scale-95 flex items-center justify-center gap-3 shadow-lg
-                                    ${!selectedVariant
-                                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none'
-                                        : 'bg-[#1a1a1a] text-[#f0c961] hover:bg-[#333] hover:shadow-xl hover:-translate-y-1'}
-                                `}
-                            >
-                                {addingToCart ? 'EKLENİYOR...' : ((selectedVariant?.stock || 0) <= 0 ? 'TÜKENDİ' : 'SEPETE EKLE')}
-                            </button>
+                            {variants.length === 0 && (
+                                <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl border border-yellow-200 text-center mb-6">
+                                    Bu ürün için şu anda satışa açık seçenek bulunmamaktadır.
+                                </div>
+                            )}
 
+                            {/* Miktar & Sepete Ekle */}
+                            {selectedVariant && (
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mt-auto">
+                                    {/* Miktar */}
+                                    <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-2 border border-gray-200">
+                                        <button
+                                            onClick={() => handleQuantityChange('decrease')}
+                                            disabled={quantity <= 1}
+                                            className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm font-bold text-gray-600 hover:text-[#f0c961] disabled:opacity-50 transition-colors"
+                                        >
+                                            -
+                                        </button>
+                                        <span className="text-xl font-bold text-[#1a1a1a] w-8 text-center">{quantity}</span>
+                                        <button
+                                            onClick={() => handleQuantityChange('increase')}
+                                            disabled={quantity >= selectedVariant.stock}
+                                            className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm font-bold text-gray-600 hover:text-[#f0c961] disabled:opacity-50 transition-colors"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+
+                                    {/* Sepete Ekle Butonu */}
+                                    <button
+                                        onClick={handleAddToCart}
+                                        disabled={addingToCart || selectedVariant.stock <= 0}
+                                        className={`
+                                            flex-1 py-4 px-8 rounded-xl font-black uppercase tracking-wider transition-all transform active:scale-95 flex items-center justify-center gap-3 shadow-lg
+                                            ${selectedVariant.stock <= 0
+                                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none'
+                                                : 'bg-[#1a1a1a] text-[#f0c961] hover:bg-[#333] hover:shadow-xl'}
+                                        `}
+                                    >
+                                        {addingToCart ? 'EKLENİYOR...' : (selectedVariant.stock <= 0 ? 'TÜKENDİ' : 'SEPETE EKLE')}
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Stok Bilgisi */}
+                            {selectedVariant && (
+                                <div className="text-xs text-gray-400 mt-3 font-medium">
+                                    Stok: {selectedVariant.stock} Adet
+                                </div>
+                            )}
+
+                            {/* Sepet Mesajı */}
                             {cartMessage && (
-                                <div className={`mt-4 p-4 rounded-xl text-sm font-bold text-center animate-bounce ${cartMessage.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                                <div className={`mt-4 p-4 rounded-xl text-sm font-bold text-center ${cartMessage.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                                     {cartMessage.text}
                                 </div>
                             )}
@@ -434,8 +497,47 @@ const ProductDetail: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 3. Yorumlar */}
-                {product && <ProductReviews productId={product.id} />}
+                {/* Ürün Bilgisi Bölümü */}
+                {product.description && (
+                    <div className="mt-12 mb-8">
+                        {/* Tab Header */}
+                        <div className="flex border-b border-gray-200">
+                            <div className="px-6 py-3 bg-[#f0c961] text-[#1a1a1a] font-bold text-sm uppercase tracking-wider rounded-t-lg">
+                                Ürün Bilgisi
+                            </div>
+                        </div>
+                        {/* Content */}
+                        <div className="bg-white border border-t-0 border-gray-200 rounded-b-lg p-6 md:p-8">
+                            <p className="text-gray-700 text-base leading-relaxed whitespace-pre-line">
+                                {product.description}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Yorumlar Butonu */}
+                <div className="mt-8 mb-12 flex justify-center">
+                    <Link
+                        to={`/products/${product.slug}/reviews`}
+                        className="bg-white border-2 border-gray-100 text-gray-800 font-bold py-4 px-8 rounded-2xl hover:border-[#f0c961] hover:bg-[#fffaf4] transition-all flex items-center gap-3 shadow-sm hover:shadow-md group"
+                    >
+                        <Star className="w-6 h-6 text-[#f0c961] fill-[#f0c961]" />
+                        <span className="text-lg">Ürün Değerlendirmeleri ({reviewStats.count})</span>
+                        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-[#f0c961] transition-colors">
+                            <span className="text-gray-600 group-hover:text-white font-bold">&rarr;</span>
+                        </div>
+                    </Link>
+
+
+                </div>
+
+                {/* Benzer Ürünler */}
+                {product && product.product_categories && product.product_categories.length > 0 && (
+                    <SimilarProducts
+                        currentProductId={product.id}
+                        categoryId={product.product_categories[0].category_id}
+                    />
+                )}
 
             </div>
         </div>

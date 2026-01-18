@@ -3,6 +3,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
+import ProductReviewsPage from './pages/ProductReviewsPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import AdminRoute from './components/AdminRoute';
@@ -12,8 +13,6 @@ import AdminProducts from './pages/admin/AdminProducts';
 import AdminProductDetail from './pages/admin/AdminProductDetail';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminOrderDetail from './pages/admin/AdminOrderDetail';
-import AdminPriceLists from './pages/admin/AdminPriceLists';
-import AdminPriceListDetail from './pages/admin/AdminPriceListDetail';
 import AdminCategories from './pages/admin/AdminCategories';
 import AdminFeaturedCollections from './pages/admin/AdminFeaturedCollections';
 import CategoryPage from './pages/CategoryPage';
@@ -27,6 +26,7 @@ import DealerApplicationForm from './pages/DealerApplicationForm';
 import AdminDealers from './pages/admin/AdminDealers';
 import AdminHeroSlides from './pages/admin/AdminHeroSlides';
 import AdminReviews from './pages/admin/AdminReviews';
+import AdminSettings from './pages/admin/AdminSettings';
 import SearchResults from './pages/SearchResults';
 import WhatsAppButton from './components/common/WhatsAppButton';
 import ForgotPassword from './pages/auth/ForgotPassword';
@@ -53,6 +53,7 @@ function MainLayout() {
           <Route path="/update-password" element={<UpdatePassword />} />
           <Route path="/products" element={<Products />} />
           <Route path="/products/:slug" element={<ProductDetail />} />
+          <Route path="/products/:slug/reviews" element={<ProductReviewsPage />} />
           <Route path="/search" element={<SearchResults />} />
 
           {/* Kategori Sayfası */}
@@ -95,12 +96,13 @@ function MainLayout() {
               <Route path="/admin/dealers" element={<AdminDealers />} />
               <Route path="/admin/hero-yonetimi" element={<AdminHeroSlides />} />
               <Route path="/admin/reviews" element={<AdminReviews />} />
-              <Route path="/admin/price-lists" element={<AdminPriceLists />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
+
 
               {/* Dinamik Rotalar (Dynamic Routes) - ALTTA */}
               <Route path="/admin/products/:id" element={<AdminProductDetail />} />
               <Route path="/admin/orders/:id" element={<AdminOrderDetail />} />
-              <Route path="/admin/price-lists/:id" element={<AdminPriceListDetail />} />
+
             </Route>
           </Route>
         </Routes>

@@ -56,10 +56,10 @@ const CategoryPage: React.FC = () => {
 
                 const targetIds = [currentCat.id, ...getDescendantIds(currentCat.id)];
 
-                // 4. Fetch Products for these categories
+                // 4. Fetch Products for these categories (including discount fields)
                 const { data: productsData } = await supabase
                     .from('products')
-                    .select('*, product_images(url, is_primary), product_variants(id, name, base_price, stock)')
+                    .select('*, product_images(url, is_primary), product_variants(id, name, base_price, stock, discount_percentage, discount_start_date, discount_end_date)')
                     .in('category_id', targetIds)
                     .eq('is_active', true);
 
@@ -112,13 +112,25 @@ const CategoryPage: React.FC = () => {
                         }
                     }
                 } else {
-                    // B2C Fallback
+                    // B2C: Apply discounts to base_price
+                    const now = new Date();
                     finalProducts = finalProducts.map(p => ({
                         ...p,
-                        product_variants: (p.product_variants || []).map((v: any) => ({
-                            ...v,
-                            price: v.base_price
-                        }))
+                        product_variants: (p.product_variants || []).map((v: any) => {
+                            const discountActive = (v.discount_percentage || 0) > 0 &&
+                                (!v.discount_start_date || new Date(v.discount_start_date) <= now) &&
+                                (!v.discount_end_date || new Date(v.discount_end_date) >= now);
+                            const finalPrice = discountActive
+                                ? v.base_price * (1 - v.discount_percentage / 100)
+                                : v.base_price;
+                            return {
+                                ...v,
+                                price: finalPrice,
+                                originalPrice: v.base_price,
+                                hasDiscount: discountActive,
+                                discount_percentage: v.discount_percentage || 0
+                            };
+                        })
                     }));
                 }
                 // --- B2B PRICING LOGIC END ---

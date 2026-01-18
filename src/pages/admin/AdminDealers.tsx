@@ -93,6 +93,30 @@ const AdminDealers: React.FC = () => {
         }
     };
 
+    const handleDeleteDealer = async (request: DealerRequest) => {
+        if (!window.confirm(`${request.company_name} bayiliğini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) return;
+
+        setProcessingId(request.id);
+        try {
+            // B2B request kaydını sil
+            const { error: deleteError } = await supabase
+                .from('b2b_requests')
+                .delete()
+                .eq('id', request.id);
+
+            if (deleteError) throw deleteError;
+
+            setRequests(prev => prev.filter(r => r.id !== request.id));
+            alert('Bayi başarıyla silindi.');
+
+        } catch (error: any) {
+            console.error('Error deleting dealer:', error);
+            alert('Silme işlemi başarısız oldu! ' + error.message);
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
     return (
         <div className="p-6">
             <h1 className="text-2xl font-bold text-gray-800 mb-6">Bayi Yönetimi</h1>
@@ -102,8 +126,8 @@ const AdminDealers: React.FC = () => {
                 <button
                     onClick={() => setActiveTab('pending')}
                     className={`pb-2 px-4 font-medium transition-colors relative ${activeTab === 'pending'
-                            ? 'text-yellow-600 border-b-2 border-yellow-500'
-                            : 'text-gray-500 hover:text-gray-700'
+                        ? 'text-yellow-600 border-b-2 border-yellow-500'
+                        : 'text-gray-500 hover:text-gray-700'
                         }`}
                 >
                     Bekleyen Başvurular
@@ -111,8 +135,8 @@ const AdminDealers: React.FC = () => {
                 <button
                     onClick={() => setActiveTab('approved')}
                     className={`pb-2 px-4 font-medium transition-colors relative ${activeTab === 'approved'
-                            ? 'text-yellow-600 border-b-2 border-yellow-500'
-                            : 'text-gray-500 hover:text-gray-700'
+                        ? 'text-yellow-600 border-b-2 border-yellow-500'
+                        : 'text-gray-500 hover:text-gray-700'
                         }`}
                 >
                     Aktif Bayiler (B2B)
@@ -133,10 +157,10 @@ const AdminDealers: React.FC = () => {
                                 <div className="flex items-start justify-between">
                                     <h3 className="text-xl font-bold text-gray-900">{req.company_name}</h3>
                                     <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${req.status === 'approved'
-                                            ? 'bg-green-100 text-green-800'
-                                            : req.status === 'pending'
-                                                ? 'bg-yellow-100 text-yellow-800'
-                                                : 'bg-red-100 text-red-800'
+                                        ? 'bg-green-100 text-green-800'
+                                        : req.status === 'pending'
+                                            ? 'bg-yellow-100 text-yellow-800'
+                                            : 'bg-red-100 text-red-800'
                                         }`}>
                                         {req.status === 'approved' ? 'Aktif Bayi' :
                                             req.status === 'pending' ? 'Beklemede' : 'Reddedildi'}
@@ -181,10 +205,13 @@ const AdminDealers: React.FC = () => {
 
                             {activeTab === 'approved' && (
                                 <div className="flex md:flex-col justify-center gap-3 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6 min-w-[140px]">
-                                    {/* Gelecekte buraya detay butonu veya yetki alma butonu eklenebilir */}
-                                    <div className="text-center text-sm text-gray-400">
-                                        İşlem Yok
-                                    </div>
+                                    <button
+                                        onClick={() => handleDeleteDealer(req)}
+                                        disabled={processingId === req.id}
+                                        className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 text-sm"
+                                    >
+                                        {processingId === req.id ? 'Siliniyor...' : 'SİL'}
+                                    </button>
                                 </div>
                             )}
                         </div>

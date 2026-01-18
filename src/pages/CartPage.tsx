@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Link } from 'react-router-dom';
 import { fetchUserRole, calculateVariantPrice } from '../lib/pricing';
-import { formatCurrency } from '../utils/formatters';
+import { useCurrency } from '../hooks/useCurrency';
 import { Truck, Trash2, Lock, ShieldCheck, ShoppingBag, ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface CartItem {
@@ -20,6 +20,7 @@ interface CartItem {
 }
 
 const CartPage: React.FC = () => {
+    const { formatPrice } = useCurrency();
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [cartTotal, setCartTotal] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(true);
@@ -105,7 +106,7 @@ const CartPage: React.FC = () => {
                 );
 
                 setCartItems(itemsWithPrices);
-                setCartTotal(itemsWithPrices.reduce((sum, item) => sum + (item.lineTotal || 0), 0));
+                setCartTotal(itemsWithPrices.reduce((sum: number, item: CartItem) => sum + (item.lineTotal || 0), 0));
             }
         } catch (err) {
             console.error("Beklenmeyen hata:", err);
@@ -275,7 +276,7 @@ const CartPage: React.FC = () => {
                                                 {/* Price */}
                                                 <div className="text-center sm:text-right min-w-[120px]">
                                                     <div className="font-bold text-xl text-[#1a1a1a]">
-                                                        {formatCurrency(item.lineTotal || 0)}
+                                                        {formatPrice(item.lineTotal || 0)}
                                                     </div>
 
                                                 </div>
@@ -320,7 +321,7 @@ const CartPage: React.FC = () => {
                                 <div className="space-y-4 mb-8 text-sm">
                                     <div className="flex justify-between text-gray-600">
                                         <span>Ara Toplam</span>
-                                        <span className="font-medium">{formatCurrency(grossTotal)}</span>
+                                        <span className="font-medium">{formatPrice(grossTotal)}</span>
                                     </div>
 
 
@@ -334,7 +335,7 @@ const CartPage: React.FC = () => {
                                     <span className="text-base font-bold text-gray-800 uppercase">Genel Toplam</span>
                                     <div className="text-right">
                                         <span className="block text-2xl font-black text-[#6D4C41] leading-none">
-                                            {formatCurrency(grossTotal)}
+                                            {formatPrice(grossTotal)}
                                         </span>
                                         {/* <span className="text-[10px] text-gray-400 mt-1 block">KDV Dahil, Kargo Hariç</span> */}
                                     </div>

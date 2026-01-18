@@ -2,16 +2,20 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { getOrCreateActiveCart } from '../lib/cart';
+import { useCurrency } from '../hooks/useCurrency';
 
 
 interface ProductVariant {
     id: string;
     product_id: string;
     name: string;
-    price?: number; // Calculated price
+    price?: number; // Calculated price (discounted)
+    originalPrice?: number; // Original price before discount
     base_price: number; // DB price
     stock: number;
     is_active: boolean;
+    discount_percentage?: number;
+    hasDiscount?: boolean;
 }
 
 interface ProductImage {
@@ -33,6 +37,7 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+    const { formatPrice } = useCurrency();
     const navigate = useNavigate();
     const [adding, setAdding] = useState(false);
 
@@ -46,6 +51,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     const variants = product.product_variants || [];
     const minPrice = variants.length > 0
         ? Math.min(...variants.map(v => v.price || v.base_price || 0))
+        : 0;
+    const maxOriginalPrice = variants.length > 0
+        ? Math.max(...variants.map(v => v.originalPrice || v.base_price || 0))
+        : 0;
+    const hasAnyDiscount = variants.some(v => v.hasDiscount);
+    const maxDiscount = variants.length > 0
+        ? Math.max(...variants.filter(v => v.hasDiscount).map(v => v.discount_percentage || 0))
         : 0;
 
     const handleAddToCart = async (e: React.MouseEvent) => {
@@ -137,6 +149,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                         <span className="text-4xl">📦</span>
                     )}
 
+                    {/* Discount Badge */}
+                    {hasAnyDiscount && maxDiscount > 0 && (
+                        <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                            %{maxDiscount}
+                        </div>
+                    )}
+
                     {/* Stock Badge */}
                     {variants.length > 0 && variants[0].stock <= 0 && variants.length === 1 && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/10">
@@ -157,8 +176,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                     </h3>
 
                     {minPrice > 0 ? (
-                        <div className="text-lg font-bold text-[#6D4C41]">
-                            {minPrice.toLocaleString('tr-TR')} TL
+                        <div className="flex flex-col items-center gap-1">
+                            {hasAnyDiscount && maxOriginalPrice > minPrice && (
+                                <span className="text-sm text-gray-500 line-through decoration-red-500 decoration-2">
+                                    {formatPrice(maxOriginalPrice)}
+                                </span>
+                            )}
+                            <span className={`text-lg font-bold ${hasAnyDiscount ? 'text-red-600' : 'text-[#6D4C41]'}`}>
+                                {formatPrice(minPrice)}
+                            </span>
                         </div>
                     ) : (
                         <div className="text-sm font-bold text-gray-400">

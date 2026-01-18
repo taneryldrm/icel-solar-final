@@ -43,8 +43,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, ed
                 setDescription(editProduct.description || '');
                 setIsActive(editProduct.is_active);
                 setIsFeatured(editProduct.is_featured || false);
-                // Directly set category_id from product
-                setSelectedCategoryId(editProduct.category_id || null);
+                // Fetch category from junction table
+                fetchProductCategory(editProduct.id);
                 fetchProductImages(editProduct.id);
             } else {
                 // Add Mode
@@ -62,6 +62,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, ed
             // Reset state on close
             setImages([]);
             setDeletedImageIds([]);
+            setSelectedCategoryId(null);
         }
     }, [isOpen, editProduct]);
 
@@ -80,6 +81,22 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, ed
             setCategories(buildTree(data));
         }
         setLoading(false);
+    };
+
+    // Fetch product's category from junction table
+    const fetchProductCategory = async (productId: string) => {
+        const { data } = await supabase
+            .from('product_categories')
+            .select('category_id')
+            .eq('product_id', productId)
+            .limit(1)
+            .maybeSingle();
+
+        if (data && data.category_id) {
+            setSelectedCategoryId(data.category_id);
+        } else {
+            setSelectedCategoryId(null);
+        }
     };
 
     const fetchProductImages = async (productId: string) => {
@@ -151,6 +168,28 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, ed
                     .single();
                 if (error) throw error;
                 productId = data.id;
+            }
+
+            // 2. Sync product_categories table (for consistency with other components)
+            if (productId) {
+                // First, delete existing category relations for this product
+                await supabase
+                    .from('product_categories')
+                    .delete()
+                    .eq('product_id', productId);
+
+                // Then, if a category is selected, insert the new relation
+                if (selectedCategoryId) {
+                    const { error: catError } = await supabase
+                        .from('product_categories')
+                        .insert({
+                            product_id: productId,
+                            category_id: selectedCategoryId
+                        });
+                    if (catError) {
+                        console.error('Error saving category relation:', catError);
+                    }
+                }
             }
 
             if (productId) {

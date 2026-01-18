@@ -17,7 +17,7 @@ const FeaturedProducts: React.FC = () => {
                         slug,
                         is_featured,
                         product_images(url, is_primary),
-                        product_variants(id, name, base_price, stock, is_active)
+                        product_variants(id, name, base_price, stock, is_active, discount_percentage, discount_start_date, discount_end_date)
                     `)
                     .eq('is_active', true)
                     .eq('is_featured', true)
@@ -29,7 +29,27 @@ const FeaturedProducts: React.FC = () => {
                 }
 
                 if (data) {
-                    setProducts(data as any as Product[]);
+                    // Apply discounts to variants
+                    const now = new Date();
+                    const productsWithDiscounts = data.map((p: any) => ({
+                        ...p,
+                        product_variants: (p.product_variants || []).map((v: any) => {
+                            const discountActive = (v.discount_percentage || 0) > 0 &&
+                                (!v.discount_start_date || new Date(v.discount_start_date) <= now) &&
+                                (!v.discount_end_date || new Date(v.discount_end_date) >= now);
+                            const finalPrice = discountActive
+                                ? v.base_price * (1 - v.discount_percentage / 100)
+                                : v.base_price;
+                            return {
+                                ...v,
+                                price: finalPrice,
+                                originalPrice: v.base_price,
+                                hasDiscount: discountActive,
+                                discount_percentage: v.discount_percentage || 0
+                            };
+                        })
+                    }));
+                    setProducts(productsWithDiscounts as Product[]);
                 }
             } catch (error) {
                 console.error('Error fetching featured products:', error);

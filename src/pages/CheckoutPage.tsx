@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { fetchUserRole, calculateVariantPrice } from '../lib/pricing';
-import { formatCurrency } from '../utils/formatters';
+import { useCurrency } from '../hooks/useCurrency';
 import { TURKEY_DATA } from '../constants/turkey-data';
 import SearchableSelect from '../components/SearchableSelect';
 
@@ -16,6 +16,7 @@ interface CheckoutItem {
 }
 
 const CheckoutPage: React.FC = () => {
+    const { formatPrice, convertPrice } = useCurrency();
     const navigate = useNavigate();
     const [cartItems, setCartItems] = useState<CheckoutItem[]>([]);
     const [cartTotal, setCartTotal] = useState(0);
@@ -275,17 +276,21 @@ const CheckoutPage: React.FC = () => {
                 if (!variant.is_active) throw new Error(`"${variant.name}" ürünü şu anda satışa kapalı.`);
                 if (variant.stock < qty) throw new Error(`"${variant.name}" için yeterli stok yok. Mevcut: ${variant.stock}`);
 
-                const unitPrice = await calculateVariantPrice(variant.id, variant.base_price, userRole);
-                const lineTotal = unitPrice * qty;
+                const unitPriceUSD = await calculateVariantPrice(variant.id, variant.base_price, userRole);
+                const lineTotalUSD = unitPriceUSD * qty;
 
-                calculatedSubtotal += lineTotal;
+                // CONVERT TO TL AT THIS POINT TO ENSURE ORDER IS IN TL
+                const unitPriceTL = convertPrice(unitPriceUSD);
+                const lineTotalTL = convertPrice(lineTotalUSD);
+
+                calculatedSubtotal += lineTotalTL;
 
                 finalOrderItems.push({
                     variant_id: variant.id,
                     product_id: (Array.isArray(variant.products) ? variant.products[0] : variant.products)?.id,
                     quantity: qty,
-                    unit_price_snapshot: unitPrice,
-                    line_total: lineTotal,
+                    unit_price_snapshot: unitPriceTL,
+                    line_total: lineTotalTL,
                     product_name_snapshot: variant.name,
                     sku_snapshot: variant.sku || '',
                     attributes_snapshot: {}
@@ -580,7 +585,7 @@ const CheckoutPage: React.FC = () => {
                                             <div className="font-medium text-gray-900">{item.product_variants.name}</div>
                                             <div className="text-gray-500 text-xs">x{item.quantity}</div>
                                         </div>
-                                        <div className="font-bold text-gray-900">{formatCurrency(item.lineTotal || 0)}</div>
+                                        <div className="font-bold text-gray-900">{formatPrice(item.lineTotal || 0)}</div>
                                     </div>
                                 ))}
                             </div>
@@ -588,7 +593,7 @@ const CheckoutPage: React.FC = () => {
                             <div className="border-t border-gray-200 pt-4 space-y-2 mb-6">
                                 <div className="flex justify-between text-sm text-gray-600">
                                     <span>Ara Toplam</span>
-                                    <span className="font-medium">{formatCurrency(cartTotal)}</span>
+                                    <span className="font-medium">{formatPrice(cartTotal)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm text-gray-600">
                                     <span>Kargo</span>
@@ -598,7 +603,7 @@ const CheckoutPage: React.FC = () => {
 
                             <div className="flex justify-between text-xl font-bold text-gray-900 mb-6 pt-4 border-t-2">
                                 <span>Toplam</span>
-                                <span className="text-[#6D4C41]">{formatCurrency(cartTotal)}</span>
+                                <span className="text-[#6D4C41]">{formatPrice(cartTotal)}</span>
                             </div>
 
                             {formError && (

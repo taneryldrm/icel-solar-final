@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { Star, User } from 'lucide-react';
+import { Star, User, MessageSquare, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Review {
@@ -28,6 +28,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => {
     const [userExistingRating, setUserExistingRating] = useState<number | null>(null);
 
     // Form State
+    const [isFormOpen, setIsFormOpen] = useState(false);
     const [rating, setRating] = useState(5);
     const [comment, setComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -141,14 +142,14 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => {
                         <div className="text-gray-500 text-sm font-medium">{reviews.length} Değerlendirme</div>
                     </div>
 
-                    {/* Yorum Formu */}
+                    {/* Yorum Formu / Butonu */}
                     <div className="border-t border-gray-100 pt-8">
-                        <h3 className="font-bold text-lg mb-4">Yorum Yap</h3>
+
 
                         {user ? (
                             userHasReviewed ? (
-                                // Kullanıcı zaten yorum yapmışsa gösterilecek mesaj
-                                <div className="bg-green-50 rounded-xl p-6 border border-green-100 text-center">
+                                // Kullanıcı zaten yorum yapmışsa
+                                <div className="bg-green-50 rounded-xl p-6 border border-green-100 text-center animate-fade-in">
                                     <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
                                         <Star className="w-6 h-6 fill-current" />
                                     </div>
@@ -167,62 +168,97 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => {
                                             </div>
                                         </div>
                                     )}
-                                    {/* Başarı mesajı varsa (yeni gönderildiyse) burada da gösterelim */}
-                                    {submitMessage && submitMessage.type === 'success' && (
-                                        <div className="mt-4 text-xs font-bold text-green-700 bg-white p-2 rounded-lg">
-                                            {submitMessage.text}
-                                        </div>
-                                    )}
                                 </div>
                             ) : (
-                                // Kullanıcı henüz yorum yapmamışsa gösterilecek form
-                                <form onSubmit={handleSubmit} className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Puanınız</label>
-                                        <div className="flex gap-2">
-                                            {[1, 2, 3, 4, 5].map((star) => (
+                                // Kullanıcı yorum yapmamışsa -> Buton veya Form
+                                <>
+                                    {!isFormOpen ? (
+                                        <button
+                                            onClick={() => setIsFormOpen(true)}
+                                            className="w-full bg-[#1a1a1a] text-white font-bold py-4 rounded-xl hover:bg-[#333] transition-all transform active:scale-95 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                                        >
+                                            <MessageSquare className="w-5 h-5" />
+                                            Yorum Yap
+                                        </button>
+                                    ) : (
+                                        <div className="bg-white rounded-xl border border-gray-100 p-1 animate-fade-in-up">
+                                            <div className="flex items-center justify-between mb-4 px-2 pt-2">
+                                                <h3 className="font-bold text-lg text-gray-900">Yorumunuzu Yazın</h3>
                                                 <button
-                                                    key={star}
-                                                    type="button"
-                                                    onClick={() => setRating(star)}
-                                                    className="focus:outline-none transition-transform hover:scale-110"
+                                                    onClick={() => setIsFormOpen(false)}
+                                                    className="text-gray-400 hover:text-red-500 transition-colors bg-gray-50 p-2 rounded-full"
+                                                    title="Vazgeç"
                                                 >
-                                                    <Star
-                                                        className={`w-8 h-8 ${star <= rating ? 'text-[#f0c961] fill-[#f0c961]' : 'text-gray-200'}`}
-                                                    />
+                                                    <X className="w-4 h-4" />
                                                 </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Yorumunuz</label>
-                                        <textarea
-                                            value={comment}
-                                            onChange={(e) => setComment(e.target.value)}
-                                            rows={4}
-                                            required
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#f0c961] focus:border-transparent resize-none"
-                                            placeholder="Ürün hakkındaki düşünceleriniz..."
-                                        />
-                                    </div>
-                                    <button
-                                        type="submit"
-                                        disabled={submitting}
-                                        className="w-full bg-[#1a1a1a] text-[#f0c961] font-bold py-3 rounded-xl hover:bg-[#333] transition-colors disabled:opacity-70"
-                                    >
-                                        {submitting ? 'Gönderiliyor...' : 'Yorumu Gönder'}
-                                    </button>
-                                    {submitMessage && (
-                                        <div className={`p-3 rounded-lg text-sm font-medium ${submitMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                                            {submitMessage.text}
+                                            </div>
+
+                                            <form onSubmit={handleSubmit} className="space-y-4">
+                                                <div className="bg-gray-50 p-4 rounded-xl">
+                                                    <label className="block text-sm font-bold text-gray-700 mb-2 text-center text-sm uppercase tracking-wide">Puanlayın</label>
+                                                    <div className="flex justify-center gap-3">
+                                                        {[1, 2, 3, 4, 5].map((star) => (
+                                                            <button
+                                                                key={star}
+                                                                type="button"
+                                                                onClick={() => setRating(star)}
+                                                                className="focus:outline-none transition-transform hover:scale-110 group"
+                                                            >
+                                                                <Star
+                                                                    className={`w-8 h-8 ${star <= rating ? 'text-[#f0c961] fill-[#f0c961]' : 'text-gray-300 group-hover:text-[#f0c961] group-hover:fill-[#f0c961]/30'}`}
+                                                                />
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Yorumunuz</label>
+                                                    <textarea
+                                                        value={comment}
+                                                        onChange={(e) => setComment(e.target.value)}
+                                                        rows={4}
+                                                        required
+                                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f0c961] focus:border-transparent resize-none text-sm transition-all placeholder-gray-400"
+                                                        placeholder="Ürün hakkındaki deneyimlerinizi paylaşın..."
+                                                    />
+                                                </div>
+
+                                                <div className="flex gap-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsFormOpen(false)}
+                                                        className="flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors"
+                                                    >
+                                                        Vazgeç
+                                                    </button>
+                                                    <button
+                                                        type="submit"
+                                                        disabled={submitting}
+                                                        className="flex-[2] bg-[#f0c961] text-[#1a1a1a] font-bold py-3 rounded-xl hover:bg-[#e0b950] transition-colors disabled:opacity-70 shadow-sm hover:shadow"
+                                                    >
+                                                        {submitting ? 'Gönderiliyor...' : 'Yorumu Gönder'}
+                                                    </button>
+                                                </div>
+
+                                                {submitMessage && (
+                                                    <div className={`p-3 rounded-lg text-sm font-bold text-center ${submitMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                                                        {submitMessage.text}
+                                                    </div>
+                                                )}
+                                            </form>
                                         </div>
                                     )}
-                                </form>
+                                </>
                             )
                         ) : (
-                            <div className="text-center p-6 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                <p className="text-gray-600 mb-4">Yorum yapabilmek için giriş yapmalısınız.</p>
-                                <Link to="/login" className="inline-block bg-[#f0c961] text-[#1a1a1a] font-bold px-6 py-2 rounded-lg hover:bg-[#e0b950] transition-colors">
+                            <div className="text-center p-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-500">
+                                    <User className="w-6 h-6" />
+                                </div>
+                                <h4 className="font-bold text-gray-900 mb-2">Yorum Yapmak İçin</h4>
+                                <p className="text-gray-500 text-sm mb-6">Değerlendirme yapabilmek için lütfen giriş yapın.</p>
+                                <Link to="/login" className="block w-full bg-[#1a1a1a] text-white font-bold px-6 py-3 rounded-xl hover:bg-[#333] transition-colors shadow-md">
                                     Giriş Yap
                                 </Link>
                             </div>

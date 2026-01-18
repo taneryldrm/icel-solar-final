@@ -15,14 +15,12 @@ const Products: React.FC = () => {
 
     useEffect(() => {
         const fetchProducts = async () => {
-            // Simulate a slight delay for the skeleton to be visible (luxury feel)
-            await new Promise(resolve => setTimeout(resolve, 800));
 
             try {
-                // 1. Fetch Products & Variants
+                // 1. Fetch Products & Variants (including discount fields)
                 const { data: productsData, error: productError } = await supabase
                     .from('products')
-                    .select('*, product_images(url, is_primary), product_variants(id, name, base_price, stock)')
+                    .select('*, product_images(url, is_primary), product_variants(id, name, base_price, stock, discount_percentage, discount_start_date, discount_end_date)')
                     .eq('is_active', true)
                     .order('created_at', { ascending: false });
 
@@ -90,13 +88,25 @@ const Products: React.FC = () => {
                         }
                     }
                 } else {
-                    // B2C: Ensure 'price' is set to base_price for consistency (start with base_price)
+                    // B2C: Apply discounts to base_price
+                    const now = new Date();
                     finalProducts = finalProducts.map(p => ({
                         ...p,
-                        product_variants: (p.product_variants || []).map((v: any) => ({
-                            ...v,
-                            price: v.base_price
-                        }))
+                        product_variants: (p.product_variants || []).map((v: any) => {
+                            const discountActive = (v.discount_percentage || 0) > 0 &&
+                                (!v.discount_start_date || new Date(v.discount_start_date) <= now) &&
+                                (!v.discount_end_date || new Date(v.discount_end_date) >= now);
+                            const finalPrice = discountActive
+                                ? v.base_price * (1 - v.discount_percentage / 100)
+                                : v.base_price;
+                            return {
+                                ...v,
+                                price: finalPrice,
+                                originalPrice: v.base_price,
+                                hasDiscount: discountActive,
+                                discount_percentage: v.discount_percentage || 0
+                            };
+                        })
                     }));
                 }
 
@@ -118,14 +128,14 @@ const Products: React.FC = () => {
         show: {
             opacity: 1,
             transition: {
-                staggerChildren: 0.1
+                staggerChildren: 0.03 // Reduced from 0.1 for faster loading feel
             }
         }
     };
 
     const item = {
-        hidden: { opacity: 0, y: 30 },
-        show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 50 } }
+        hidden: { opacity: 0, y: 20 },
+        show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 120, damping: 20 } }
     };
 
     return (

@@ -19,6 +19,9 @@ interface VariantDisplay {
     base_price: number;
     is_active: boolean;
     prices: { [key: number]: number }; // price_list_id -> price
+    discount_percentage: number;
+    discount_start_date: string | null;
+    discount_end_date: string | null;
 }
 
 const AdminProductDetail: React.FC = () => {
@@ -70,7 +73,7 @@ const AdminProductDetail: React.FC = () => {
             const { data: variantsData, error } = await supabase
                 .from('product_variants')
                 .select(`
-id, name, sku, stock, base_price, is_active,
+id, name, sku, stock, base_price, is_active, discount_percentage, discount_start_date, discount_end_date,
     variant_prices(price, price_list_id, is_active)
         `)
                 .eq('product_id', id)
@@ -94,7 +97,10 @@ id, name, sku, stock, base_price, is_active,
                     stock: v.stock,
                     base_price: v.base_price,
                     is_active: v.is_active,
-                    prices: pricesMap
+                    prices: pricesMap,
+                    discount_percentage: v.discount_percentage || 0,
+                    discount_start_date: v.discount_start_date,
+                    discount_end_date: v.discount_end_date
                 };
             });
 
@@ -182,6 +188,35 @@ id, name, sku, stock, base_price, is_active,
         }
     };
 
+    // İNDİRİM GÜNCELLEME
+    const handleDiscountChange = async (variantId: string, percentage: number) => {
+        if (percentage < 0 || percentage > 100) return;
+        try {
+            const { error } = await supabase
+                .from('product_variants')
+                .update({ discount_percentage: percentage })
+                .eq('id', variantId);
+            if (error) throw error;
+            setVariants(prev => prev.map(v => v.id === variantId ? { ...v, discount_percentage: percentage } : v));
+        } catch (e) {
+            alert("İndirim güncellenemedi");
+        }
+    };
+
+    // İNDİRİM BİTİŞ TARİHİ GÜNCELLEME
+    const handleDiscountEndDateChange = async (variantId: string, date: string) => {
+        try {
+            const { error } = await supabase
+                .from('product_variants')
+                .update({ discount_end_date: date || null })
+                .eq('id', variantId);
+            if (error) throw error;
+            setVariants(prev => prev.map(v => v.id === variantId ? { ...v, discount_end_date: date || null } : v));
+        } catch (e) {
+            alert("İndirim bitiş tarihi güncellenemedi");
+        }
+    };
+
     if (loading && variants.length === 0) {
         return <div className="p-8 text-center">Yükleniyor...</div>;
     }
@@ -222,6 +257,12 @@ id, name, sku, stock, base_price, is_active,
                                         </div>
                                     </th>
                                 ))}
+                                <th className="p-3 font-bold text-red-600 bg-red-50 border-l border-red-100 w-24 text-center">
+                                    İndirim %
+                                </th>
+                                <th className="p-3 font-bold text-red-600 bg-red-50 border-r border-red-100 w-36 text-center">
+                                    Bitiş Tarihi
+                                </th>
                                 <th className="p-3 font-bold text-gray-600 text-right">İşlemler</th>
                             </tr>
                         </thead>
@@ -279,6 +320,33 @@ id, name, sku, stock, base_price, is_active,
                                             </td>
                                         );
                                     })}
+
+                                    {/* İndirim Input */}
+                                    <td className="p-3 bg-red-50/30 border-l border-red-100/50">
+                                        <div className="flex items-center justify-center gap-1">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                step="1"
+                                                value={v.discount_percentage || ''}
+                                                onChange={(e) => handleDiscountChange(v.id, Number(e.target.value))}
+                                                placeholder="0"
+                                                className="w-16 px-2 py-1 text-center font-bold text-red-600 bg-white border border-red-200 rounded focus:ring-2 focus:ring-red-400 focus:border-transparent"
+                                            />
+                                            <span className="text-red-400 text-xs font-bold">%</span>
+                                        </div>
+                                    </td>
+
+                                    {/* İndirim Bitiş Tarihi */}
+                                    <td className="p-3 bg-red-50/30 border-r border-red-100/50">
+                                        <input
+                                            type="date"
+                                            value={v.discount_end_date ? v.discount_end_date.split('T')[0] : ''}
+                                            onChange={(e) => handleDiscountEndDateChange(v.id, e.target.value)}
+                                            className="w-full px-2 py-1 text-center text-red-600 bg-white border border-red-200 rounded focus:ring-2 focus:ring-red-400 focus:border-transparent text-xs"
+                                        />
+                                    </td>
 
                                     <td className="p-3 text-right">
                                         <div className="flex items-center justify-end gap-2">

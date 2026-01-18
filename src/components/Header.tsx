@@ -174,17 +174,80 @@ export default function Header() {
                             <Menu className="w-6 h-6" strokeWidth={2.5} />
                         </button>
 
-                        {/* Center: Logo */}
-                        <div className="flex flex-col items-center justify-center text-center md:static md:flex-row md:gap-8 flex-1 md:flex-none">
-                            <Link to="/" className="group flex flex-col items-center hover:scale-105 transition-transform duration-300">
+                        {/* Center: Logo + Search */}
+                        <div className="flex items-center justify-start flex-1 gap-6">
+                            <Link to="/" className="group flex flex-col items-center hover:scale-105 transition-transform duration-300 shrink-0">
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-lg md:text-2xl font-black text-[#f0c961] italic tracking-tighter drop-shadow-sm select-none">İÇEL</span>
                                     <span className="text-lg md:text-2xl font-black text-[#222] italic tracking-tighter select-none">SOLAR</span>
                                 </div>
                             </Link>
 
-                            {/* Desktop Menu Placeholder */}
-                            <div className="hidden md:flex items-center gap-8 ml-8"></div>
+                            {/* Desktop Search (Inline with Logo) */}
+                            <div className="hidden md:block flex-1 max-w-lg relative" ref={searchRef}>
+                                <input
+                                    type="text"
+                                    placeholder="Ürün, kategori veya marka ara..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 bg-[#f9f9f9] text-gray-700 placeholder-gray-400 focus:bg-white focus:border-[#f0c961] focus:ring-2 focus:ring-[#f0c961]/20 outline-none transition-all shadow-inner text-sm"
+                                />
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                    <Search className="w-4 h-4" />
+                                </div>
+
+                                {/* Autocomplete Dropdown */}
+                                {showDropdown && searchQuery.length >= 2 && (
+                                    <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-[100] animate-fade-in-up">
+                                        {searchLoading ? (
+                                            <div className="p-4 text-center text-gray-400 text-sm">Aranıyor...</div>
+                                        ) : searchResults.length > 0 ? (
+                                            <ul>
+                                                {searchResults.map((item) => (
+                                                    <li key={`${item.type}-${item.id}`} className="border-b border-gray-50 last:border-0 hover:bg-[#fffaf4] transition-colors">
+                                                        <Link
+                                                            to={item.type === 'category' ? `/kategori/${item.slug}` : `/products/${item.slug}`}
+                                                            onClick={() => { setShowDropdown(false); setSearchQuery(''); }}
+                                                            className="flex items-center gap-3 p-3"
+                                                        >
+                                                            {item.type === 'category' ? (
+                                                                <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center flex-shrink-0">
+                                                                    <span className="text-xs font-bold">#</span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0">
+                                                                    {item.product_images?.[0]?.url ? (
+                                                                        <img src={item.product_images[0].url} alt={item.name} className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">📦</div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="text-sm font-medium text-gray-800 truncate">
+                                                                    {item.name}
+                                                                </div>
+                                                                <div className="text-xs text-gray-400 capitalize">
+                                                                    {item.type === 'category' ? 'Kategori' : 'Ürün'}
+                                                                </div>
+                                                            </div>
+                                                            <ChevronRight className="w-4 h-4 text-gray-300" />
+                                                        </Link>
+                                                    </li>
+                                                ))}
+                                                <li className="p-2 bg-gray-50 text-center">
+                                                    <button onClick={handleSearchSubmit} className="text-xs font-bold text-[#f0c961] hover:underline">
+                                                        Tüm Sonuçları Gör ({searchResults.length}+)
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        ) : (
+                                            <div className="p-4 text-center text-gray-400 text-sm">Sonuç bulunamadı.</div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Right: Icons Group */}
@@ -228,86 +291,18 @@ export default function Header() {
                         </div>
                     </div>
 
-                    {/* Desktop Search (Visible only on md+) */}
-                    <div className="hidden md:flex justify-center mt-4">
-                        <div className="relative w-full max-w-lg group" ref={searchRef}>
-                            <input
-                                type="text"
-                                placeholder="Ürün, kategori veya marka ara..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                className="w-full pl-12 pr-4 py-2.5 rounded-full border border-gray-200 bg-[#f9f9f9] text-gray-700 placeholder-gray-400 focus:bg-white focus:border-[#f0c961] focus:ring-2 focus:ring-[#f0c961]/20 outline-none transition-all shadow-inner text-sm"
-                            />
-                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f0c961] transition-colors">
-                                <Search className="w-5 h-5" />
-                            </div>
-
-                            {/* Autocomplete Dropdown */}
-                            {showDropdown && searchQuery.length >= 2 && (
-                                <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-[100] animate-fade-in-up">
-                                    {searchLoading ? (
-                                        <div className="p-4 text-center text-gray-400 text-sm">Aranıyor...</div>
-                                    ) : searchResults.length > 0 ? (
-                                        <ul>
-                                            {searchResults.map((item) => (
-                                                <li key={`${item.type}-${item.id}`} className="border-b border-gray-50 last:border-0 hover:bg-[#fffaf4] transition-colors">
-                                                    <Link
-                                                        to={item.type === 'category' ? `/kategori/${item.slug}` : `/products/${item.slug}`}
-                                                        onClick={() => { setShowDropdown(false); setSearchQuery(''); }}
-                                                        className="flex items-center gap-3 p-3"
-                                                    >
-                                                        {item.type === 'category' ? (
-                                                            <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center flex-shrink-0">
-                                                                <span className="text-xs font-bold">#</span>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0">
-                                                                {item.product_images?.[0]?.url ? (
-                                                                    <img src={item.product_images[0].url} alt={item.name} className="w-full h-full object-cover" />
-                                                                ) : (
-                                                                    <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">📦</div>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="text-sm font-medium text-gray-800 truncate">
-                                                                {item.name}
-                                                            </div>
-                                                            <div className="text-xs text-gray-400 capitalize">
-                                                                {item.type === 'category' ? 'Kategori' : 'Ürün'}
-                                                            </div>
-                                                        </div>
-                                                        <ChevronRight className="w-4 h-4 text-gray-300" />
-                                                    </Link>
-                                                </li>
-                                            ))}
-                                            <li className="p-2 bg-gray-50 text-center">
-                                                <button onClick={handleSearchSubmit} className="text-xs font-bold text-[#f0c961] hover:underline">
-                                                    Tüm Sonuçları Gör ({searchResults.length}+)
-                                                </button>
-                                            </li>
-                                        </ul>
-                                    ) : (
-                                        <div className="p-4 text-center text-gray-400 text-sm">Sonuç bulunamadı.</div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
 
                 </div>
 
                 {/* DESKTOP MENU (Hidden on Mobile) */}
                 <div className="hidden md:block border-t border-gray-100 bg-[#fffaf4]">
                     <div className="container mx-auto px-4">
-                        <nav className="flex items-center justify-center gap-8 md:gap-14 overflow-visible relative">
+                        <nav className="flex items-center justify-center gap-4 lg:gap-8 xl:gap-12 overflow-x-auto scrollbar-hide relative">
                             {menuItems.map((item) => (
-                                <div key={item.id} className="relative group py-4">
+                                <div key={item.id} className="relative group py-4 flex-shrink-0">
                                     <Link
                                         to={`/kategori/${item.slug}`}
-                                        className="text-[12px] font-bold text-gray-600 hover:text-[#f0c961] whitespace-nowrap transition-colors tracking-widest flex items-center gap-1"
+                                        className="text-[11px] lg:text-[12px] font-bold text-gray-600 hover:text-[#f0c961] whitespace-nowrap transition-colors tracking-wider flex items-center gap-1"
                                     >
                                         {item.name.toUpperCase()}
                                         {item.children.length > 0 && <ChevronDown className="w-3 h-3" />}
@@ -329,15 +324,15 @@ export default function Header() {
                                     <span className="absolute bottom-4 left-1/2 -translate-x-1/2 w-0 h-[3px] bg-[#f0c961] rounded-t-full transition-all duration-300 group-hover:w-full opacity-0 group-hover:opacity-100"></span>
                                 </div>
                             ))}
-                            <Link to="/bayi-basvuru" className="py-4 text-[12px] font-bold text-gray-600 hover:text-[#f0c961] whitespace-nowrap transition-colors tracking-widest relative group">
+                            <Link to="/bayi-basvuru" className="py-4 text-[11px] lg:text-[12px] font-bold text-gray-600 hover:text-[#f0c961] whitespace-nowrap transition-colors tracking-wider relative group flex-shrink-0">
                                 BAYİLİK BAŞVURUSU
                                 <span className="absolute bottom-4 left-1/2 -translate-x-1/2 w-0 h-[3px] bg-[#f0c961] rounded-t-full transition-all duration-300 group-hover:w-full opacity-0 group-hover:opacity-100"></span>
                             </Link>
-                            <Link to="/hakkimizda" className="py-4 text-[12px] font-bold text-gray-600 hover:text-[#f0c961] whitespace-nowrap transition-colors tracking-widest relative group">
+                            <Link to="/hakkimizda" className="py-4 text-[11px] lg:text-[12px] font-bold text-gray-600 hover:text-[#f0c961] whitespace-nowrap transition-colors tracking-wider relative group flex-shrink-0">
                                 HAKKIMIZDA
                                 <span className="absolute bottom-4 left-1/2 -translate-x-1/2 w-0 h-[3px] bg-[#f0c961] rounded-t-full transition-all duration-300 group-hover:w-full opacity-0 group-hover:opacity-100"></span>
                             </Link>
-                            <Link to="/iletisim" className="py-4 text-[12px] font-bold text-gray-600 hover:text-[#f0c961] whitespace-nowrap transition-colors tracking-widest relative group">
+                            <Link to="/iletisim" className="py-4 text-[11px] lg:text-[12px] font-bold text-gray-600 hover:text-[#f0c961] whitespace-nowrap transition-colors tracking-wider relative group flex-shrink-0">
                                 İLETİŞİM
                                 <span className="absolute bottom-4 left-1/2 -translate-x-1/2 w-0 h-[3px] bg-[#f0c961] rounded-t-full transition-all duration-300 group-hover:w-full opacity-0 group-hover:opacity-100"></span>
                             </Link>

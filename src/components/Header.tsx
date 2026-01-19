@@ -218,7 +218,14 @@ export default function Header() {
                                                             ) : (
                                                                 <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0">
                                                                     {item.product_images?.[0]?.url ? (
-                                                                        <img src={item.product_images[0].url} alt={item.name} className="w-full h-full object-cover" />
+                                                                        <img
+                                                                            src={item.product_images[0].url}
+                                                                            alt={item.name}
+                                                                            loading="lazy"
+                                                                            width={32}
+                                                                            height={32}
+                                                                            className="w-full h-full object-cover"
+                                                                        />
                                                                     ) : (
                                                                         <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">📦</div>
                                                                     )}

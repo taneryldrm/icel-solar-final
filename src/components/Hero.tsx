@@ -95,6 +95,8 @@ const Hero: React.FC = () => {
                     <img
                         src={slide.image_url}
                         alt={slide.title}
+                        width={1920}
+                        height={700}
                         className="w-full h-full object-cover"
                     />
                 </motion.div>

@@ -143,7 +143,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                         <img
                             src={displayImage}
                             alt={product.name}
-                            className={`w-full h-full object-contain transform group-hover:scale-105 transition-transform duration-500 ${variants.length > 0 && variants[0].stock <= 0 && variants.length === 1 ? 'opacity-50 grayscale' : ''}`}
+                            loading="lazy"
+                            width={400}
+                            height={300}
+                            className={`w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500 ${variants.length > 0 && variants[0].stock <= 0 && variants.length === 1 ? 'opacity-50 grayscale' : ''}`}
                         />
                     ) : (
                         <span className="text-4xl">📦</span>

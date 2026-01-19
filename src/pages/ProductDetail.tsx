@@ -289,6 +289,8 @@ const ProductDetail: React.FC = () => {
                                     <img
                                         src={activeImage}
                                         alt={product.name}
+                                        width={600}
+                                        height={600}
                                         className="w-full h-full object-cover"
                                     />
                                 ) : (
@@ -313,6 +315,9 @@ const ProductDetail: React.FC = () => {
                                             <img
                                                 src={img.url}
                                                 alt={`${product.name} ${idx + 1}`}
+                                                loading="lazy"
+                                                width={100}
+                                                height={100}
                                                 className="w-full h-full object-cover"
                                             />
                                         </button>

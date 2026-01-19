@@ -151,7 +151,14 @@ const ProfileOrders: React.FC<ProfileOrdersProps> = ({ userId }) => {
                                     <div key={item.id} className="flex items-center gap-4 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
                                         <div className="w-16 h-16 bg-white border border-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                                             {item.products?.product_images?.[0]?.url ? (
-                                                <img src={item.products.product_images[0].url} alt={item.products.name} className="w-full h-full object-cover" />
+                                                <img
+                                                    src={item.products.product_images[0].url}
+                                                    alt={item.products.name}
+                                                    loading="lazy"
+                                                    width={64}
+                                                    height={64}
+                                                    className="w-full h-full object-cover"
+                                                />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs text-center p-1">Görsel Yok</div>
                                             )}

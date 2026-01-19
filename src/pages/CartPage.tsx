@@ -233,7 +233,14 @@ const CartPage: React.FC = () => {
                                                 {/* Image */}
                                                 <div className="w-24 h-24 bg-white rounded border border-gray-200 flex-shrink-0 flex items-center justify-center p-2">
                                                     {primaryImage ? (
-                                                        <img src={primaryImage} alt={product?.name} className="w-full h-full object-contain" />
+                                                        <img
+                                                            src={primaryImage}
+                                                            alt={product?.name}
+                                                            loading="lazy"
+                                                            width={96}
+                                                            height={96}
+                                                            className="w-full h-full object-cover"
+                                                        />
                                                     ) : (
                                                         <ShoppingBag className="w-10 h-10 text-gray-300" />
                                                     )}

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import imageCompression from 'browser-image-compression';
 
 export interface ProductImage {
     id: string; // Creates a temporary ID for new uploads, or DB ID for existing
@@ -22,6 +23,28 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({ images, onIma
     const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // --- WEBP Conversion Helper ---
+    // Görseli upload öncesi WEBP formatına dönüştürür (800px, %75 kalite)
+    const convertToWebP = async (file: File): Promise<File> => {
+        const options = {
+            maxWidthOrHeight: 800,
+            useWebWorker: true,
+            fileType: 'image/webp' as const,
+            initialQuality: 0.75, // %75 kalite
+            maxSizeMB: 0.2, // ~200KB hedef
+        };
+
+        try {
+            const compressedFile = await imageCompression(file, options);
+            // Dosya adını .webp olarak güncelle
+            const baseName = file.name.replace(/\.[^/.]+$/, '');
+            return new File([compressedFile], `${baseName}.webp`, { type: 'image/webp' });
+        } catch (error) {
+            console.error('WEBP dönüşüm hatası:', error);
+            throw new Error('Görsel işlenemedi');
+        }
+    };
+
     // --- Upload Logic ---
 
     const processFiles = async (files: FileList | File[]) => {
@@ -34,23 +57,31 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({ images, onIma
                 // Validate Image
                 if (!file.type.startsWith('image/')) continue;
 
-                // 1. Upload to Supabase Storage immediately
-                const fileExt = file.name.split('.').pop();
-                const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+                // 1. WEBP dönüşümü (upload öncesi)
+                let processedFile: File;
+                try {
+                    processedFile = await convertToWebP(file);
+                } catch (conversionError) {
+                    alert('Görsel işlenemedi. Lütfen farklı bir görsel deneyin.');
+                    continue;
+                }
+
+                // 2. Upload to Supabase Storage
+                const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`;
                 const filePath = `uploads/${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
                     .from('product-images')
-                    .upload(filePath, file);
+                    .upload(filePath, processedFile);
 
                 if (uploadError) throw uploadError;
 
-                // 2. Get Public URL
+                // 3. Get Public URL
                 const { data: { publicUrl } } = supabase.storage
                     .from('product-images')
                     .getPublicUrl(filePath);
 
-                // 3. Create State Object
+                // 4. Create State Object
                 // If it's the first image overall, make it primary
                 const isFirst = images.length === 0 && newImages.length === 0;
 
@@ -59,7 +90,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({ images, onIma
                     url: publicUrl,
                     is_primary: isFirst,
                     sort_order: images.length + newImages.length,
-                    file: file,
+                    file: processedFile,
                     is_new: true
                 });
             }
@@ -213,6 +244,9 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({ images, onIma
                             <img
                                 src={img.url}
                                 alt={`Görsel ${index + 1}`}
+                                loading="lazy"
+                                width={200}
+                                height={200}
                                 className="w-full h-full object-cover pointer-events-none select-none"
                             />
 

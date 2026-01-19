@@ -97,20 +97,48 @@ export default function Header() {
         // Initial Session Check
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
-            if (session) initializeCart(session.user.id);
+            if (session) {
+                initializeCart(session.user.id);
+            } else {
+                // Misafir kullanıcı için sepet sayısını çek
+                fetchGuestCartCount();
+            }
         });
 
         // Auth State Listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
-            if (session) initializeCart(session.user.id);
-            else setCartCount(0);
+            if (session) {
+                initializeCart(session.user.id);
+            } else {
+                fetchGuestCartCount();
+            }
         });
 
         fetchCategories();
 
         return () => subscription.unsubscribe();
     }, []);
+
+    // Sepet değişikliklerini dinle (realtime)
+    useEffect(() => {
+        const refreshCartCount = () => {
+            if (session) {
+                fetchCartCount(session.user.id);
+            } else {
+                fetchGuestCartCount();
+            }
+        };
+
+        // Her sayfa değişikliğinde ve storage event'inde sepeti güncelle
+        window.addEventListener('storage', refreshCartCount);
+        window.addEventListener('cartUpdated', refreshCartCount);
+
+        return () => {
+            window.removeEventListener('storage', refreshCartCount);
+            window.removeEventListener('cartUpdated', refreshCartCount);
+        };
+    }, [session]);
 
     // Close mobile menu on route change
     useEffect(() => {
@@ -134,11 +162,31 @@ export default function Header() {
         }
     };
 
+    // Giriş yapmış kullanıcı için sepet sayısı
     const fetchCartCount = async (userId: string) => {
         const { data } = await supabase.from('carts').select('id').eq('profile_id', userId).eq('status', 'active').maybeSingle();
         if (data) {
             const { count } = await supabase.from('cart_items').select('*', { count: 'exact', head: true }).eq('cart_id', data.id);
             setCartCount(count || 0);
+        } else {
+            setCartCount(0);
+        }
+    };
+
+    // Misafir kullanıcı için sepet sayısı
+    const fetchGuestCartCount = async () => {
+        const sessionId = localStorage.getItem('guest_session_id');
+        if (!sessionId) {
+            setCartCount(0);
+            return;
+        }
+
+        const { data } = await supabase.from('carts').select('id').eq('session_id', sessionId).eq('status', 'active').maybeSingle();
+        if (data) {
+            const { count } = await supabase.from('cart_items').select('*', { count: 'exact', head: true }).eq('cart_id', data.id);
+            setCartCount(count || 0);
+        } else {
+            setCartCount(0);
         }
     };
 

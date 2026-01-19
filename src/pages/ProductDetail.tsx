@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 
 import SimilarProducts from '../components/SimilarProducts';
 import { supabase } from '../lib/supabaseClient';
-import { getOrCreateActiveCart } from '../lib/cart';
+import { getOrCreateActiveCart, dispatchCartUpdate } from '../lib/cart';
 import { fetchUserRole, calculateVariantPrice } from '../lib/pricing';
 import { useCurrency } from '../hooks/useCurrency';
 import { Star } from 'lucide-react'; // Added import
@@ -239,6 +239,7 @@ const ProductDetail: React.FC = () => {
                 if (insertError) throw insertError;
             }
 
+            dispatchCartUpdate(); // Header'daki sepet sayısını güncelle
             setCartMessage({ type: 'success', text: 'Ürün başarıyla sepete eklendi!' });
 
         } catch (err: any) {

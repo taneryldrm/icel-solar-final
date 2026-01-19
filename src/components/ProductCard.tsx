@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { getOrCreateActiveCart } from '../lib/cart';
+import { getOrCreateActiveCart, dispatchCartUpdate } from '../lib/cart';
 import { useCurrency } from '../hooks/useCurrency';
 
 
@@ -122,8 +122,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             }
 
             // Success Feedback
-            // Could use a toast here, but user asked for "Ürün sepete eklendi uyarısı"
-            // Simple alert or changing button text temporarily
+            dispatchCartUpdate(); // Header'daki sepet sayısını güncelle
             alert('Ürün sepete eklendi!');
 
         } catch (error) {

@@ -234,3 +234,11 @@ export const getCurrentCartId = async (userId?: string): Promise<string | null> 
         return null;
     }
 };
+
+/**
+ * Dispatch cart update event to refresh cart count in Header
+ * Call this after adding/removing items from cart
+ */
+export const dispatchCartUpdate = () => {
+    window.dispatchEvent(new CustomEvent('cartUpdated'));
+};

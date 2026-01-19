@@ -156,15 +156,35 @@ const CartPage: React.FC = () => {
         if (!window.confirm("Sepetteki tüm ürünleri silmek istediğinize emin misiniz?")) return;
         setLoading(true);
         try {
-            // Find current cart id
+            // Find current cart id - both for users and guests
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-            const { data: cartData } = await supabase.from('carts').select('id').eq('profile_id', user.id).eq('status', 'active').single();
+
+            let cartData;
+            if (user) {
+                // Logged in user
+                const { data } = await supabase.from('carts').select('id').eq('profile_id', user.id).eq('status', 'active').maybeSingle();
+                cartData = data;
+            } else {
+                // Guest user
+                const sessionId = localStorage.getItem('guest_session_id');
+                if (sessionId) {
+                    const { data } = await supabase.from('carts').select('id').eq('session_id', sessionId).eq('status', 'active').maybeSingle();
+                    cartData = data;
+                }
+            }
+
             if (cartData) {
                 await supabase.from('cart_items').delete().eq('cart_id', cartData.id);
+                // Header'daki sepet sayısını güncelle
+                window.dispatchEvent(new CustomEvent('cartUpdated'));
                 fetchCart();
             }
-        } catch (error) { console.error(error); } finally { setLoading(false); }
+        } catch (error) {
+            console.error(error);
+            alert('Sepet boşaltılırken bir hata oluştu.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     // --- Calculations ---
